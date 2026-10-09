@@ -210,6 +210,9 @@ export async function handleRequest(
     }
 
     if (method === "GET" && path === "/api/member-profiles") {
+      const account = await accountFromCookie(input.cookie);
+      if (!account) return { status: 401, body: { error: "请先登录" } };
+      if (!hasPermission(account, "红娘")) return { status: 403, body: { error: "没有红娘权限" } };
       if (!extras?.pool) return { status: 400, body: { error: "画像还没接上" } };
       return run(async () => await listProfiles(extras.pool!));
     }
@@ -237,10 +240,11 @@ export async function handleRequest(
     if (profilePath) {
       if (!extras?.pool) return { status: 400, body: { error: "画像还没接上" } };
       const memberId = memberIdFrom(profilePath);
+      const account = await accountFromCookie(input.cookie);
+      if (!account) return { status: 401, body: { error: "请先登录" } };
+      if (!hasPermission(account, "红娘")) return { status: 403, body: { error: "没有红娘权限" } };
       if (method === "GET") return run(async () => (await getProfile(extras.pool!, memberId)) ?? emptyProfile(memberId));
       if (method === "PUT") {
-        const account = await accountFromCookie(input.cookie);
-        if (!account || !hasPermission(account, "红娘")) return { status: 403, body: { error: "没有红娘权限" } };
         return run(async () => await saveManualProfile(extras.pool!, { memberId, today: todayOf(record(input.body)), body: record(input.body) }));
       }
     }

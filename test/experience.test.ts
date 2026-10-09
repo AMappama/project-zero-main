@@ -59,4 +59,32 @@ describe("画像和建议只预览", () => {
       await closeTestDb(pool);
     }
   });
+
+  it("画像是红娘权限范围，未登录读不到", async () => {
+    const { pool, crm } = await fresh();
+    try {
+      await seedWorkbench(crm);
+      await seedDemoProfiles(pool);
+
+      const list = await handleRequest(crm, { method: "GET", url: "/api/member-profiles" }, { pool });
+      expect(list.status).toBe(401);
+
+      const single = await handleRequest(crm, { method: "GET", url: "/api/members/101/profile" }, { pool });
+      expect(single.status).toBe(401);
+
+      const write = await handleRequest(
+        crm,
+        { method: "PUT", url: "/api/members/101/profile", body: { name: "周晚宁", today: "2026-09-30" } },
+        { pool },
+      );
+      expect(write.status).toBe(401);
+
+      const cookie = await cookieFor(1);
+      const allowed = await handleRequest(crm, { method: "GET", url: "/api/member-profiles", cookie }, { pool });
+      expect(allowed.status).toBe(200);
+      expect((allowed.body as { memberId: number }[]).map((row) => row.memberId)).toContain(101);
+    } finally {
+      await closeTestDb(pool);
+    }
+  });
 });

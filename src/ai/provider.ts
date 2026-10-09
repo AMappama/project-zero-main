@@ -37,9 +37,12 @@ export async function chatJson<T>(input: ChatJsonInput<T>): Promise<ChatJsonResu
       if (parsed.ok) return { ok: true, data: parsed.data, model: "cache", fromCache: true };
     }
   }
-  const primary = await attempt(config.primary, input, config, hash);
+  // timeoutMs 是整条主备链路的总预算，不是单次请求的超时。
+  // 不设deadline 的话，重试次数乘以端点数会把等待放大成4 倍。
+  const deadline = Date.now() + (input.timeoutMs ?? config.timeoutMs);
+  const primary = await attempt(config.primary, input, deadline, hash);
   if (primary.ok) return primary.result;
-  const fallback = await attempt(config.fallback, input, config, hash);
+  const fallback = await attempt(config.fallback, input, deadline, hash);
   if (fallback.ok) return fallback.result;
   const reason = primary.reason === "parse" || fallback.reason === "parse" ? "parse" : fallback.reason;
   return { ok: false, reason };
@@ -48,11 +51,11 @@ export async function chatJson<T>(input: ChatJsonInput<T>): Promise<ChatJsonResu
 async function attempt<T>(
   endpoint: AiEndpoint,
   input: ChatJsonInput<T>,
-  config: AiConfig,
+  deadline: number,
   hash: string,
 ): Promise<{ ok: true; result: ChatJsonResult<T> } | { ok: false; reason: "timeout" | "parse" | "upstream" }> {
   const started = Date.now();
-  const called = await callEndpoint(endpoint, input, config.timeoutMs);
+  const called = await callEndpoint(endpoint, input, deadline);
   await recordInvocation(input.pool, {
     callerId: input.callerId ?? null,
     purpose: input.purpose,
@@ -73,13 +76,15 @@ async function attempt<T>(
 async function callEndpoint<T>(
   endpoint: AiEndpoint,
   input: ChatJsonInput<T>,
-  defaultTimeout: number,
+  deadline: number,
 ): Promise<{ ok: true; text: string; model: string; usage: Usage } | { ok: false; reason: "timeout" | "upstream"; model: string }> {
   if (!endpoint.apiKey || !endpoint.model) return { ok: false, reason: "upstream", model: endpoint.model || "unset" };
-  const timeoutMs = input.timeoutMs ?? defaultTimeout;
   let last: "timeout" | "upstream" = "upstream";
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const result = await once(endpoint, input, timeoutMs);
+    const remaining = deadline - Date.now();
+    // 预算用完就不再试第二次，也不再起新的计时器。
+    if (remaining <= 0) return { ok: false, reason: "timeout", model: endpoint.model };
+    const result = await once(endpoint, input, remaining);
     if (result.ok) return result;
     last = result.reason;
   }

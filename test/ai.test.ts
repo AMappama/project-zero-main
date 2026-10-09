@@ -71,4 +71,52 @@ describe("模型通道", () => {
     });
     expect(result).toEqual({ ok: false, reason: "parse" });
   });
+
+  it("整条主备链路共享timeoutMs，不被重试次数放大", async () => {
+    // 上游一直不返回。timeoutMs 是总预算，所以总耗时必须贴近它本身，
+    // 而不是timeoutMs x 重试次数 x 两个端点。
+    const budgetMs = 600;
+    const started = Date.now();
+    const result = await chatJson({
+      purpose: "recommendation-copy",
+      system: "只输出 JSON",
+      user: "{}",
+      temperature: 0.7,
+      timeoutMs: budgetMs,
+      config: enabled,
+      parse: () => ({ ok: true }),
+      fetchImpl: (_url, init) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () =>
+            reject(Object.assign(new Error("aborted"), { name: "AbortError" })),
+          );
+        }),
+    });
+    const elapsed = Date.now() - started;
+    expect(result).toEqual({ ok: false, reason: "timeout" });
+    expect(elapsed).toBeLessThan(budgetMs * 2);
+  });
+
+  it("预算耗尽后不再发起第二次请求", async () => {
+    let calls = 0;
+    await chatJson({
+      purpose: "staff-fit",
+      system: "只输出 JSON",
+      user: "{}",
+      temperature: 0.2,
+      timeoutMs: 400,
+      config: enabled,
+      parse: () => ({ items: [] }),
+      fetchImpl: (_url, init) => {
+        calls += 1;
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () =>
+            reject(Object.assign(new Error("aborted"), { name: "AbortError" })),
+          );
+        });
+      },
+    });
+    // 第一次主模型就把预算用完，同端点不重试，备用端点也不再发请求。
+    expect(calls).toBe(1);
+  });
 });
