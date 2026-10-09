@@ -17,6 +17,8 @@ export type HomeItem = {
   highlights: string | null;
   hiddenPoints: string | null;
   progress: string | null;
+  summary?: string | null;
+  todayFacts?: string[];
 };
 
 export type HomeScreen = {
@@ -29,6 +31,22 @@ export type HomeScreen = {
     liveOrders: { orderId: number; memberId: number; status: string }[];
     pauses: { applicationId: number; orderId: number; memberId: number; pauseEnd: string | null }[];
   };
+  achievements?: { meetings: number; applications: number; notes: number };
+};
+
+export type MemberProfileRecord = {
+  memberId: number;
+  name: string | null;
+  age: number | null;
+  city: string | null;
+  job: string | null;
+  schedule: string | null;
+  emotionalNeed: string | null;
+  strengths: string | null;
+  taboos: string | null;
+  disclosureBoundary: string | null;
+  source: "manual" | "sync";
+  updatedAt: string;
 };
 
 export type Account = {
@@ -61,8 +79,16 @@ export function getJson<T>(path: string) {
 }
 
 export function postAction<T>(path: string, body: unknown) {
+  return sendJson<T>("POST", path, body);
+}
+
+export function putAction<T>(path: string, body: unknown) {
+  return sendJson<T>("PUT", path, body);
+}
+
+function sendJson<T>(method: string, path: string, body: unknown) {
   return fetch(path, {
-    method: "POST",
+    method,
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   }).then((response) => read<T>(response));

@@ -14,7 +14,7 @@ export function isUnwritten(value: string, field: keyof RecommendationCopy) {
   return field === "reason" && text === STUB_REASON;
 }
 
-/** 待办：这里仍是写死的四组话术。之后改为调用模型生成，现在不接模型。见项目根目录 TODO.md。 */
+/** 模型没调通时的本地四套话术。页面先请求建议接口，接口失败才用这里。 */
 export function suggestRecommendationCopy(memberName: string, guestName: string, seed: number): RecommendationCopy {
   const index = Math.abs(seed) % 4;
   const progress = [

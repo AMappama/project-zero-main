@@ -51,13 +51,27 @@ function ErrorLine({ error }: { error: string | null }) {
   return <p className="text-sm text-destructive">{error}</p>;
 }
 
+type FitNote = {
+  personId: number;
+  fitScore: number;
+  whyMatch: string;
+  risk: string;
+  firstTalk: string;
+};
+
 type ServicePersonOption = {
   personId: number;
   name: string;
   roleLabel: string;
   tag: "最推荐" | "推荐" | null;
   reason: string;
+  fit?: FitNote;
 };
+
+type StaffFitResponse =
+  | { available: false }
+  | { available: true; failed: true; notice: string }
+  | { available: true; failed: false; notes: FitNote[]; order: number[] };
 
 export function AssignDialog(props: {
   trigger: string;
@@ -73,6 +87,7 @@ export function AssignDialog(props: {
   const [people, setPeople] = useState<ServicePersonOption[]>([]);
   const [peoplePhase, setPeoplePhase] = useState<"loading" | "ready" | "error">("loading");
   const [peopleError, setPeopleError] = useState("");
+  const [fitNote, setFitNote] = useState("");
   const { error, pending, submit } = useSubmit(props.onDone);
   const selected = people.find((person) => String(person.personId) === servicePersonId) ?? null;
 
@@ -81,12 +96,40 @@ export function AssignDialog(props: {
     let cancelled = false;
     setPeoplePhase("loading");
     setPeopleError("");
+    setFitNote("");
     getJson<ServicePersonOption[]>(`/api/service-people?tenantId=${props.tenantId}`)
       .then((rows) => {
         if (cancelled) return;
         setPeople(rows);
         setPeoplePhase("ready");
         setServicePersonId(rows[0] ? String(rows[0].personId) : "");
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 5000);
+        void fetch("/api/suggest-staff-fit", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ tenantId: props.tenantId }),
+          signal: controller.signal,
+        })
+          .then(async (response) => (await response.json()) as StaffFitResponse)
+          .then((data) => {
+            if (cancelled || !data.available) return;
+            if (data.failed) {
+              setFitNote(data.notice);
+              return;
+            }
+            const byId = new Map(data.notes.map((note) => [note.personId, note]));
+            const rank = new Map(data.order.map((id, index) => [id, index]));
+            setPeople((current) =>
+              current
+                .map((person) => ({ ...person, fit: byId.get(person.personId) }))
+                .sort((left, right) => (rank.get(left.personId) ?? 999) - (rank.get(right.personId) ?? 999)),
+            );
+          })
+          .catch(() => {
+            if (!cancelled) setFitNote("匹配说明未生成");
+          })
+          .finally(() => clearTimeout(timer));
       })
       .catch((caught: unknown) => {
         if (cancelled) return;
@@ -141,7 +184,16 @@ export function AssignDialog(props: {
             </select>
           )}
         </Field>
-        {selected ? <p className="text-xs leading-5 text-[#675385]">AI 推荐理由：{selected.reason}</p> : null}
+        {selected ? <p className="text-xs leading-5 text-muted-foreground">规则说明：{selected.reason}</p> : null}
+        {selected?.fit ? (
+          <div className="grid gap-1 text-xs leading-5 text-foreground">
+            <p>匹配 {selected.fit.fitScore}：{selected.fit.whyMatch}</p>
+            <p>风险：{selected.fit.risk}</p>
+            <p>第一句：{selected.fit.firstTalk}</p>
+          </div>
+        ) : fitNote ? (
+          <p className="text-xs text-muted-foreground">{fitNote}</p>
+        ) : null}
         <ErrorLine error={error} />
         <DialogFooter>
           <Button
@@ -377,6 +429,7 @@ export function FileCloseDialog(props: {
   presetOrderId?: number | null;
   lockOrder?: boolean;
   trigger?: string;
+  quiet?: boolean;
   onDone: () => Promise<void> | void;
 }) {
   const [open, setOpen] = useState(false);
@@ -395,7 +448,7 @@ export function FileCloseDialog(props: {
       }}
     >
       <DialogTrigger asChild>
-        <Button type="button" variant="outline" size="sm">
+        <Button type="button" variant={props.quiet ? "link" : "outline"} size="sm">
           {props.trigger ?? "提前关单"}
         </Button>
       </DialogTrigger>
@@ -553,27 +606,89 @@ export function ConfirmDraftDialog(props: { item: HomeItem; tenantId: number; to
   const [reason, setReason] = useState(props.item.reason ?? "");
   const [highlights, setHighlights] = useState(props.item.highlights ?? "");
   const [hiddenPoints, setHiddenPoints] = useState(props.item.hiddenPoints ?? "");
+  const [draft, setDraft] = useState<RecommendationCopy | null>(null);
+  const [draftNote, setDraftNote] = useState("");
+  const [draftPhase, setDraftPhase] = useState<"loading" | "ready">("loading");
   const [fillNote, setFillNote] = useState("");
   const { error, pending, submit } = useSubmit(props.onDone);
+  const current = { progress, reason, highlights, hiddenPoints };
 
-  function fillEmpty() {
-    const copy = suggestRecommendationCopy(
-      memberProfile(props.item.memberId ?? 0).name,
-      memberProfile(props.item.guestMemberId ?? 0).name,
-      (props.item.memberId ?? 0) * 17 + (props.item.guestMemberId ?? 0),
-    );
-    const next: RecommendationCopy = { progress, reason, highlights, hiddenPoints };
+  function applyCopy(copy: RecommendationCopy, fields?: Array<keyof RecommendationCopy>) {
+    const next = { ...current };
     let filled = 0;
-    (Object.keys(next) as Array<keyof RecommendationCopy>).forEach((field) => {
-      if (!isUnwritten(next[field], field)) return;
+    for (const field of fields ?? (Object.keys(next) as Array<keyof RecommendationCopy>)) {
+      if (!isUnwritten(next[field], field)) continue;
       next[field] = copy[field];
       filled += 1;
-    });
+    }
     setProgress(next.progress);
     setReason(next.reason);
     setHighlights(next.highlights);
     setHiddenPoints(next.hiddenPoints);
     setFillNote(filled > 0 ? "已补上还空着的项，已经写过的没有改。" : "这四项都已经写过了。");
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setDraftPhase("loading");
+    setDraftNote("");
+    void postAction<{ source: "model" | "local"; notice: string | null; copy: RecommendationCopy }>("/api/actions/suggest-recommendation-copy", {
+      tenantId: props.tenantId,
+      memberId: props.item.memberId,
+      guestMemberId: props.item.guestMemberId,
+      facts: props.item.facts,
+      today: props.today,
+      temperature: 0.7,
+    })
+      .then((result) => {
+        if (cancelled) return;
+        setDraft(result.copy);
+        setDraftNote(result.notice ?? "");
+        setDraftPhase("ready");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        const copy = suggestRecommendationCopy(
+          memberProfile(props.item.memberId ?? 0).name,
+          memberProfile(props.item.guestMemberId ?? 0).name,
+          (props.item.memberId ?? 0) * 17 + (props.item.guestMemberId ?? 0),
+        );
+        setDraft(copy);
+        setDraftNote("这次没调通，已用本地写法");
+        setDraftPhase("ready");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, props.item.facts, props.item.guestMemberId, props.item.memberId, props.tenantId, props.today]);
+
+  function refreshDraft() {
+    setDraftPhase("loading");
+    void postAction<{ source: "model" | "local"; notice: string | null; copy: RecommendationCopy }>("/api/actions/suggest-recommendation-copy", {
+      tenantId: props.tenantId,
+      memberId: props.item.memberId,
+      guestMemberId: props.item.guestMemberId,
+      facts: props.item.facts,
+      today: props.today,
+      temperature: 0.9,
+      bypassCache: true,
+    })
+      .then((result) => {
+        setDraft(result.copy);
+        setDraftNote(result.notice ?? "");
+        setDraftPhase("ready");
+      })
+      .catch(() => {
+        const copy = suggestRecommendationCopy(
+          memberProfile(props.item.memberId ?? 0).name,
+          memberProfile(props.item.guestMemberId ?? 0).name,
+          (props.item.memberId ?? 0) * 17 + (props.item.guestMemberId ?? 0),
+        );
+        setDraft(copy);
+        setDraftNote("这次没调通，已用本地写法");
+        setDraftPhase("ready");
+      });
   }
 
   return (
@@ -588,12 +703,42 @@ export function ConfirmDraftDialog(props: { item: HomeItem; tenantId: number; to
           <DialogTitle>确认推荐</DialogTitle>
           <DialogDescription>确认后才写入推荐事实，并把这份草稿结案。不改成熟度。</DialogDescription>
         </DialogHeader>
-        <div className="flex justify-end">
-          <Button type="button" variant="outline" size="sm" disabled={pending} onClick={fillEmpty}>
-            AI 补写
-          </Button>
-        </div>
-        {fillNote ? <p className="text-xs text-[#675385]">{fillNote}</p> : null}
+        <section className="grid gap-2 rounded-md border border-border bg-accent p-3 text-sm">
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-medium">AI 草稿</p>
+            <Button type="button" variant="outline" size="sm" disabled={pending || draftPhase === "loading"} onClick={refreshDraft}>
+              换一版
+            </Button>
+          </div>
+          {draftPhase === "loading" ? <p className="text-xs text-muted-foreground">正在准备草稿。</p> : null}
+          {draftNote ? <p className="text-xs text-muted-foreground">{draftNote}</p> : null}
+          {draft ? (
+            <div className="grid gap-2">
+              {(
+                [
+                  ["progress", "进度"],
+                  ["reason", "理由"],
+                  ["highlights", "亮点"],
+                  ["hiddenPoints", "需要隐瞒的点"],
+                ] as const
+              ).map(([field, label]) => (
+                <div key={field} className="flex items-start justify-between gap-3">
+                  <p>
+                    <span className="text-muted-foreground">{label}：</span>
+                    {draft[field]}
+                  </p>
+                  <Button type="button" variant="outline" size="sm" disabled={pending} onClick={() => applyCopy(draft, [field])}>
+                    用这段
+                  </Button>
+                </div>
+              ))}
+              <Button type="button" size="sm" className="w-fit" disabled={pending} onClick={() => applyCopy(draft)}>
+                全部采用
+              </Button>
+            </div>
+          ) : null}
+        </section>
+        {fillNote ? <p className="text-xs text-muted-foreground">{fillNote}</p> : null}
         <Field label="进度">
           <Lines value={progress} onChange={(event) => setProgress(event.target.value)} />
         </Field>
@@ -696,7 +841,7 @@ export function ConsentButtons(props: { applicationId: number; onDone: () => Pro
         <Button type="button" size="sm" disabled={pending} onClick={() => void submit(() => postAction("/api/actions/set-close-consent", { applicationId: props.applicationId, consent: true }).then(() => undefined))}>
           用户同意
         </Button>
-        <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => void submit(() => postAction("/api/actions/set-close-consent", { applicationId: props.applicationId, consent: false }).then(() => undefined))}>
+        <Button type="button" size="sm" variant="link" disabled={pending} onClick={() => void submit(() => postAction("/api/actions/set-close-consent", { applicationId: props.applicationId, consent: false }).then(() => undefined))}>
           用户不同意
         </Button>
       </div>
@@ -743,7 +888,7 @@ export function ReviewButtons(props: { item: HomeItem; today: string; reviewerId
         title="驳回"
         description="驳回只改这张申请，服务实例保持原状。"
         trigger="驳回"
-        variant="outline"
+        variant="link"
         today={props.today}
         reviewerId={props.reviewerId}
         askCloser={false}
@@ -764,7 +909,7 @@ function DecisionDialog(props: {
   title: string;
   description: string;
   trigger: string;
-  variant?: "default" | "outline";
+  variant?: "default" | "outline" | "link";
   today: string;
   reviewerId: number;
   askCloser: boolean;

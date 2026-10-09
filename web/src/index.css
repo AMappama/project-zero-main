@@ -2,23 +2,32 @@
 
 @theme {
   --font-sans: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
-  --color-background: #f6f5f2;
-  --color-foreground: #252523;
+  --font-serif: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --color-background: #faf7f2;
+  --color-foreground: #2a2622;
   --color-card: #ffffff;
-  --color-card-foreground: #252523;
-  --color-primary: #5b55d6;
+  --color-card-foreground: #2a2622;
+  --color-primary: #e8735a;
   --color-primary-foreground: #ffffff;
-  --color-secondary: #eceafb;
-  --color-secondary-foreground: #5049c5;
-  --color-muted: #f0eeea;
-  --color-muted-foreground: #77746e;
-  --color-accent: #f8f7ff;
-  --color-accent-foreground: #252523;
+  --color-secondary: #f3ebe3;
+  --color-secondary-foreground: #6a4336;
+  --color-muted: #f3efe8;
+  --color-muted-foreground: #7a736c;
+  --color-accent: #f8f1ea;
+  --color-accent-foreground: #2a2622;
   --color-destructive: #b54e61;
   --color-destructive-foreground: #ffffff;
-  --color-border: #ebe8e4;
-  --color-input: #e6e3de;
-  --color-ring: #5b55d6;
+  --color-border: #eadfd4;
+  --color-input: #eadfd4;
+  --color-ring: #e8735a;
+  --color-care: #e8735a;
+  --color-celebrate: #d99a2b;
+  --color-warn: #d9a441;
+}
+
+h1,
+h2 {
+  font-family: var(--font-serif);
 }
 
 html,

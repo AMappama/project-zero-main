@@ -8,6 +8,7 @@ import { closeRedis, initRedis } from "./accounts";
 import { closeFulfillmentDb } from "./db";
 import { openFulfillment } from "./fulfillment";
 import { handleRequest } from "./http";
+import { seedDemoProfiles } from "./profiles";
 import { seedWorkbench } from "./seed";
 import { FulfillmentError } from "./types";
 
@@ -19,6 +20,7 @@ await redis.connect();
 
 const { crm, pool } = await openFulfillment({ reset: true });
 await seedWorkbench(crm);
+await seedDemoProfiles(pool);
 
 const vite = await createViteServer({
   configFile: false,
@@ -34,7 +36,7 @@ const server = createServer(async (req, res) => {
   if (url.startsWith("/api/")) {
     try {
       const body = await readJson(req);
-      const result = await handleRequest(crm, { method: req.method ?? "GET", url, body, cookie: req.headers.cookie });
+      const result = await handleRequest(crm, { method: req.method ?? "GET", url, body, cookie: req.headers.cookie }, { pool });
       sendJson(res, result.status, result.body, result.setCookie);
     } catch (error) {
       const message = error instanceof FulfillmentError ? error.message : "没有完成这次请求";

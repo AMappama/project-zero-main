@@ -4,7 +4,7 @@ import { signIn } from "../src/accounts";
 import { handleRequest } from "../src/http";
 import { seedWorkbench, WORKBENCH } from "../src/seed";
 
-async function await cookieFor(accountId: number) {
+async function cookieFor(accountId: number) {
   const signed = await signIn(accountId);
   if (!signed) throw new Error("没有这个账号");
   return `session=${signed.token}`;

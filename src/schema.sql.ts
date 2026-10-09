@@ -16,6 +16,8 @@ DROP TABLE IF EXISTS service_ownerships;
 DROP TABLE IF EXISTS shop_roles;
 DROP TABLE IF EXISTS order_facts;
 DROP TABLE IF EXISTS tenant_settings;
+DROP TABLE IF EXISTS ai_invocations;
+DROP TABLE IF EXISTS member_profiles;
 DROP TABLE IF EXISTS members;
 DROP TABLE IF EXISTS write_guard;
 SET FOREIGN_KEY_CHECKS = 1;
@@ -330,6 +332,35 @@ CREATE TABLE deal_assignments (
   CHECK (source IN ('成交遗留', '关单后领取')),
   CHECK (active IN (0, 1)),
   FOREIGN KEY (member_id) REFERENCES members(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE member_profiles (
+  member_id INT PRIMARY KEY,
+  name VARCHAR(64) NULL,
+  age INT NULL,
+  city VARCHAR(64) NULL,
+  job VARCHAR(64) NULL,
+  schedule VARCHAR(128) NULL,
+  emotional_need VARCHAR(255) NULL,
+  strengths VARCHAR(255) NULL,
+  taboos VARCHAR(255) NULL,
+  disclosure_boundary VARCHAR(255) NULL,
+  source VARCHAR(16) NOT NULL DEFAULT 'manual',
+  updated_at VARCHAR(32) NOT NULL,
+  CHECK (source IN ('manual', 'sync')),
+  FOREIGN KEY (member_id) REFERENCES members(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE ai_invocations (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  caller_id INT NULL,
+  purpose VARCHAR(64) NOT NULL,
+  model VARCHAR(64) NOT NULL,
+  latency_ms INT NOT NULL,
+  prompt_tokens INT NULL,
+  completion_tokens INT NULL,
+  context_hash CHAR(64) NOT NULL,
+  created_at VARCHAR(32) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX idx_instances_member ON service_instances(member_id);

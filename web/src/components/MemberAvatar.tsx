@@ -8,7 +8,7 @@ export function MemberAvatar({ name, src, size = "md" }: { name: string; src?: s
     return (
       <img
         src={src}
-        alt=""
+        alt={name}
         className={`${box} shrink-0 rounded-full object-cover ring-1 ring-black/[0.06]`}
         onError={() => setFailed(true)}
       />

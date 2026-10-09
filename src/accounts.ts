@@ -31,6 +31,10 @@ export function initRedis(url = redisUrl()): Redis {
   return redis;
 }
 
+export function currentRedis(): Redis | null {
+  return redis;
+}
+
 export async function closeRedis(): Promise<void> {
   if (!redis) return;
   const client = redis;

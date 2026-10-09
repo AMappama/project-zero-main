@@ -201,7 +201,7 @@ export async function seedWorkbench(crm: Fulfillment) {
   });
   await crm.reviewCloseFirst({ applicationId: secondCloseId, decision: "通过", today });
 
-  prepareServedDrafts(crm, { tenantId, servicePersonId: WORKBENCH.servicePersonId, today });
+  await prepareServedDrafts(crm, { tenantId, servicePersonId: WORKBENCH.servicePersonId, today });
 
   return { seeded: true as const };
 }

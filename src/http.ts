@@ -1,9 +1,14 @@
+import type { Pool } from "mysql2/promise";
 import { ACCOUNTS, accountFromCookie, clearSessionCookie, hasPermission, sessionCookie, signIn, signOut, type Account } from "./accounts";
+import { suggestRecommendation } from "./ai/recommendation";
+import { suggestStaffFit } from "./ai/staffFit";
 import { prepareServedDrafts } from "./drafts";
 import type { Fulfillment } from "./fulfillment";
 import { loadHome } from "./home";
+import { emptyProfile, getProfile, listProfiles, saveManualProfile } from "./profiles";
+import { countAchievements } from "./readouts";
 import { WORKBENCH } from "./seed";
-import { FulfillmentError, type DealRole, type QuotaKind } from "./types";
+import { FulfillmentError, type DealRole, type QuotaKind, type ShopRoleName } from "./types";
 
 type Outcome = { status: number; body: unknown; setCookie?: string };
 
@@ -17,6 +22,7 @@ const REVIEW_PATHS = new Set([
 const MATCHMAKER_PATHS = new Set([
   "/api/actions/assign-service-person",
   "/api/actions/prepare-recommendation-draft",
+  "/api/actions/suggest-recommendation-copy",
   "/api/actions/confirm-recommendation",
   "/api/actions/confirm-meeting",
   "/api/actions/record-meeting-result",
@@ -109,6 +115,7 @@ function memberIdFrom(params: Record<string, string>) {
 export async function handleRequest(
   crm: Fulfillment,
   input: { method: string; url: string; body?: unknown; cookie?: string },
+  extras?: { pool?: Pool },
 ): Promise<Outcome> {
   const url = new URL(input.url, "http://localhost");
   const method = input.method.toUpperCase();
@@ -160,7 +167,9 @@ export async function handleRequest(
         if (account && hasPermission(account, "红娘")) {
           await prepareServedDrafts(crm, { tenantId, servicePersonId: account.personId, today });
         }
-        return homeForAccount(await loadHome(crm, { tenantId, today }), account);
+        const home = homeForAccount(await loadHome(crm, { tenantId, today }), account);
+        if (!extras?.pool) return home;
+        return { ...home, achievements: await countAchievements(extras.pool, tenantId) };
       });
     }
     if (method === "GET" && path === "/api/service-people") {
@@ -200,6 +209,41 @@ export async function handleRequest(
       });
     }
 
+    if (method === "GET" && path === "/api/member-profiles") {
+      if (!extras?.pool) return { status: 400, body: { error: "画像还没接上" } };
+      return run(async () => await listProfiles(extras.pool!));
+    }
+    if (method === "POST" && path === "/api/suggest-staff-fit") {
+      const account = await accountFromCookie(input.cookie);
+      if (!account) return { status: 401, body: { error: "请先登录" } };
+      const roles: ShopRoleName[] = hasPermission(account, "审核人")
+        ? ["matchmanager", "shop_manager", "director"]
+        : hasPermission(account, "红娘")
+          ? ["matchmanager"]
+          : [];
+      const body = record(input.body);
+      return run(
+        async () =>
+          await suggestStaffFit({
+            crm,
+            pool: extras?.pool ?? null,
+            callerId: account.id,
+            tenantId: typeof body.tenantId === "number" ? body.tenantId : tenantOf(url),
+            roles,
+          }),
+      );
+    }
+    const profilePath = matchPath(path, "/api/members/:id/profile");
+    if (profilePath) {
+      if (!extras?.pool) return { status: 400, body: { error: "画像还没接上" } };
+      const memberId = memberIdFrom(profilePath);
+      if (method === "GET") return run(async () => (await getProfile(extras.pool!, memberId)) ?? emptyProfile(memberId));
+      if (method === "PUT") {
+        const account = await accountFromCookie(input.cookie);
+        if (!account || !hasPermission(account, "红娘")) return { status: 403, body: { error: "没有红娘权限" } };
+        return run(async () => await saveManualProfile(extras.pool!, { memberId, today: todayOf(record(input.body)), body: record(input.body) }));
+      }
+    }
     const identity = matchPath(path, "/api/members/:id/identity");
     if (method === "GET" && identity) {
       return run(async () => ({ memberId: memberIdFrom(identity), identity: await crm.memberIdentity(memberIdFrom(identity)) }));
@@ -210,7 +254,7 @@ export async function handleRequest(
     }
 
     if (method === "POST" && path.startsWith("/api/actions/")) {
-      return writeAction(crm, path, input.body, await accountFromCookie(input.cookie));
+      return writeAction(crm, path, input.body, await accountFromCookie(input.cookie), extras);
     }
     return { status: 404, body: { error: "没有这个接口" } };
   } catch (error) {
@@ -253,7 +297,13 @@ function homeForAccount<T extends { judgement: unknown[]; exceptions: unknown[];
   };
 }
 
-async function writeAction(crm: Fulfillment, path: string, raw: unknown, account: Account | null): Promise<Outcome> {
+async function writeAction(
+  crm: Fulfillment,
+  path: string,
+  raw: unknown,
+  account: Account | null,
+  extras?: { pool?: Pool },
+): Promise<Outcome> {
   const body = record(raw);
   const today = todayOf(body);
   if (REVIEW_PATHS.has(path)) {
@@ -300,6 +350,19 @@ async function writeAction(crm: Fulfillment, path: string, raw: unknown, account
         return fail(error);
       }
     }
+    case "/api/actions/suggest-recommendation-copy":
+      return run(async () => {
+        const facts = Array.isArray(body.facts) ? body.facts.filter((fact): fact is string => typeof fact === "string") : [];
+        return await suggestRecommendation({
+          pool: extras?.pool ?? null,
+          callerId: account?.id ?? null,
+          memberId: idOf(body, "memberId", "会员不存在"),
+          guestMemberId: idOf(body, "guestMemberId", "会员不存在"),
+          facts,
+          temperature: body.temperature === 0.9 ? 0.9 : 0.7,
+          bypassCache: body.bypassCache === true,
+        });
+      });
     case "/api/actions/prepare-recommendation-draft":
       return run(async () => await crm.prepareRecommendationDraft({
           tenantId: typeof body.tenantId === "number" ? body.tenantId : WORKBENCH.tenantId,

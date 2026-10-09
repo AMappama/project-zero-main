@@ -1,0 +1,14 @@
+---
+description: 改产品前先读 docs，并对照 GitHub 上的同一批文件
+alwaysApply: true
+---
+
+# 工程优化以 docs 为准
+
+`docs/` 是牵线宝工程优化的依据。动手改 `src/`、`web/`、`test/` 之前：
+
+1. 读本地 `docs/` 里和这次改动相关的文件。体验与 AI 以 `experience-and-ai-plan.md` 为准，名词以 `glossary.md` 为准，状态以 `state-machines.md` 为准。代码修改顺序以 `experience-implementation-plan.md` 为准。
+2. 对比 GitHub `origin/main` 上的 `docs/`。远程有更新就先采用远程；本地未提交的 docs 改动要在当次计划里写明。
+3. 领域层保持不变：一笔订单一条服务实例；身份只读；`src/fulfillment.ts` 不因体验或 AI 改写入语义。
+4. AI 结果只预览，经人确认才写入；不覆盖已写字段。`AI_ENABLED=0` 时测试必须离线通过。
+5. 未完成的能力按基础来写，不写成已上线。

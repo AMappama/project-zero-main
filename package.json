@@ -8,6 +8,7 @@
     "test": "vitest run",
     "demo": "vite-node src/demo.ts",
     "dev": "vite-node src/server.ts",
+    "ai:probe": "vite-node src/ai/probe.ts",
     "check": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p web",
     "check:all": "tsc --noEmit && tsc --noEmit -p web"
   },

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { formatDay, getJson, hasPermission, postAction, type Account, type Workspace } from "./api";
+import { loadMemberProfiles } from "./memberProfile";
 import { HomePage } from "./pages/HomePage";
 import { SignInPage } from "./pages/SignInPage";
 import { LibraryPage } from "./pages/LibraryPage";
@@ -39,6 +40,7 @@ export function App() {
   const [account, setAccount] = useState<Account | null>(null);
   const [sessionPhase, setSessionPhase] = useState<"loading" | "ready">("loading");
   const [navOpen, setNavOpen] = useState(false);
+  const [, setNamesReady] = useState(false);
 
   useEffect(() => {
     fetch("/api/session")
@@ -51,6 +53,9 @@ export function App() {
 
   useEffect(() => {
     if (!account) return;
+    loadMemberProfiles()
+      .then(() => setNamesReady(true))
+      .catch(() => setNamesReady(false));
     getJson<Workspace>("/api/workspace")
       .then((data) => {
         setWorkspace(data);
@@ -63,7 +68,7 @@ export function App() {
   }, [account]);
 
   if (sessionPhase === "loading") {
-    return <p className="grid min-h-screen place-items-center bg-[#F6F5F2] text-sm text-[#77746E]">正在确认账号。</p>;
+    return <p className="grid min-h-screen place-items-center bg-background text-sm text-muted-foreground">正在确认账号。</p>;
   }
   if (!account) return <SignInPage onSignedIn={setAccount} />;
 
@@ -75,7 +80,7 @@ export function App() {
   const title = memberMatch ? "会员" : meetingMatch ? "约会" : reviewMatch ? "审核" : (TITLES[path] ?? "服务跟进");
 
   return (
-    <div className="min-h-screen bg-[#F6F5F2] text-[#252523]">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen max-w-[1720px]">
         {navOpen ? (
           <button type="button" aria-label="关闭导航" className="fixed inset-0 z-30 bg-black/25 lg:hidden" onClick={() => setNavOpen(false)} />

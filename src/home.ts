@@ -41,6 +41,8 @@ export type HomeItem = {
   highlights: string | null;
   hiddenPoints: string | null;
   progress: string | null;
+  summary: string | null;
+  todayFacts: string[];
 };
 
 export type HomeScreen = {
@@ -111,6 +113,8 @@ function blank(memberId: number | null = null): HomeItem {
     highlights: null,
     hiddenPoints: null,
     progress: null,
+    summary: null,
+    todayFacts: [],
   };
 }
 
@@ -343,6 +347,7 @@ export async function loadHome(crm: Fulfillment, input: { tenantId: number; toda
   judgement.sort((a, b) => rank(a.kind, ["推荐草稿", "见面结果", "起草关单", "关单建议"]) - rank(b.kind, ["推荐草稿", "见面结果", "起草关单", "关单建议"]) || a.key.localeCompare(b.key));
   exceptions.sort((a, b) => rank(a.kind, ["开启缺口", "换人", "要暂停", "要赠送", "提前关单", "提前恢复"]) - rank(b.kind, ["开启缺口", "换人", "要暂停", "要赠送", "提前关单", "提前恢复"]) || a.key.localeCompare(b.key));
   reviews.sort((a, b) => (a.applicationId ?? 0) - (b.applicationId ?? 0));
+  for (const item of [...judgement, ...exceptions, ...reviews]) attachNarrative(item, input.today);
 
   return {
     today: input.today,
@@ -365,4 +370,39 @@ export async function loadHome(crm: Fulfillment, input: { tenantId: number; toda
         })),
     },
   };
+}
+
+const SUMMARY: Record<HomeKind, string> = {
+  推荐草稿: "推荐草稿还没确认",
+  见面结果: "见面结果还没落上",
+  起草关单: "关单草稿还没记完是否同意",
+  关单建议: "已恋爱，建议关单，还没建申请",
+  开启缺口: "还有开启条件没满足",
+  换人: "服务人还不是门店红娘",
+  要暂停: "这一单可以发起暂停",
+  要赠送: "这一单可以发起赠送",
+  提前关单: "这一单可以发起提前关单",
+  提前恢复: "暂停还没到结束日，可以提前恢复",
+  赠送: "赠送还等审核",
+  暂停: "暂停还等审核",
+  关单: "关单还等审核",
+};
+
+function attachNarrative(item: HomeItem, today: string) {
+  item.summary = item.kind === "起草关单" && item.reason === "恋爱" ? "已恋爱，关单草稿还没记下是否同意" : SUMMARY[item.kind];
+  const dates = item.detail.match(/\d{4}-\d{2}-\d{2}/g) ?? [];
+  item.todayFacts = dates.map((day) => {
+    const gap = dayGap(today, day);
+    return gap ? `${day}，${gap}` : day;
+  });
+}
+
+function dayGap(today: string, day: string) {
+  const start = Date.parse(`${day}T00:00:00Z`);
+  const end = Date.parse(`${today}T00:00:00Z`);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return "";
+  const diff = Math.round((end - start) / 86_400_000);
+  if (diff > 0) return `距今天已过 ${diff} 天`;
+  if (diff === 0) return "就是今天";
+  return `距今天还有 ${-diff} 天`;
 }

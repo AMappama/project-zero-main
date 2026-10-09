@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { staffName } from "../../../src/staff";
-import { getJson, postAction, type Workspace } from "../api";
+import { getJson, postAction, putAction, type MemberProfileRecord, type Workspace } from "../api";
 import { MemberAvatar } from "../components/MemberAvatar";
-import { memberProfile } from "../memberProfile";
+import { loadMemberProfiles, memberProfile } from "../memberProfile";
 import { withFrom } from "../returnTo";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -40,11 +40,15 @@ export function MemberPage({ workspace, memberId }: { workspace: Workspace; memb
   const [detail, setDetail] = useState<Detail | null>(null);
   const [note, setNote] = useState("");
   const [noteError, setNoteError] = useState("");
+  const [profileForm, setProfileForm] = useState<MemberProfileRecord | null>(null);
+  const [profileError, setProfileError] = useState("");
+  const [profileSaved, setProfileSaved] = useState("");
 
   const load = useCallback(async () => {
     setPhase("loading");
     try {
       setDetail(await getJson<Detail>(`/api/members/${memberId}?today=${workspace.today}`));
+      setProfileForm(await getJson<MemberProfileRecord>(`/api/members/${memberId}/profile`));
       setPhase("ready");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "没有读出来");
@@ -87,6 +91,59 @@ export function MemberPage({ workspace, memberId }: { workspace: Workspace; memb
               <dd className="mt-1">{detail.signals.length ? detail.signals.join("、") : "今天没有这些信号"}</dd>
             </div>
           </dl>
+          {profileForm ? (
+            <form
+              className="grid gap-3 rounded-lg border border-border bg-card p-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setProfileError("");
+                setProfileSaved("");
+                void putAction<MemberProfileRecord>(`/api/members/${memberId}/profile`, {
+                  ...profileForm,
+                  today: workspace.today,
+                })
+                  .then(async (saved) => {
+                    setProfileForm(saved);
+                    setProfileSaved("画像已记下。身份没有改。");
+                    await loadMemberProfiles();
+                    await load();
+                  })
+                  .catch((caught: unknown) => setProfileError(caught instanceof Error ? caught.message : "没有写上"));
+              }}
+            >
+              <h2 className="font-medium">画像</h2>
+              <p className="text-sm text-muted-foreground">只记红娘写下的事实。空着的项保持空着，不编年龄、城市或职业。</p>
+              {(
+                [
+                  ["name", "姓名"],
+                  ["age", "年龄"],
+                  ["city", "城市"],
+                  ["job", "职业"],
+                  ["schedule", "作息"],
+                  ["emotionalNeed", "情感需求"],
+                  ["strengths", "优点"],
+                  ["taboos", "禁忌"],
+                  ["disclosureBoundary", "可对嘉宾说的边界"],
+                ] as const
+              ).map(([key, label]) => (
+                <label key={key} className="grid gap-1 text-sm">
+                  <span className="text-muted-foreground">{label}</span>
+                  <Input
+                    value={profileForm[key] == null ? "" : String(profileForm[key])}
+                    onChange={(event) => {
+                      const raw = event.target.value;
+                      setProfileForm({ ...profileForm, [key]: key === "age" ? (raw === "" ? null : Number(raw)) : raw });
+                    }}
+                  />
+                </label>
+              ))}
+              {profileError ? <p className="text-sm text-destructive">{profileError}</p> : null}
+              {profileSaved ? <p className="text-sm text-[var(--color-celebrate)]">{profileSaved}</p> : null}
+              <Button type="submit" className="w-fit">
+                记下画像
+              </Button>
+            </form>
+          ) : null}
           <section className="grid gap-2">
             <h2 className="font-medium">服务实例</h2>
             {detail.instances.length === 0 ? <p className="text-sm text-muted-foreground">还没有服务实例，身份是普通。</p> : null}
