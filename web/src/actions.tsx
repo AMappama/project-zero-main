@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode, type TextareaHTMLAttributes } from
 import { getJson, postAction, type HomeItem, type HomeScreen } from "./api";
 import { isUnwritten, suggestRecommendationCopy, type RecommendationCopy } from "./draftCopy";
 import { memberProfile } from "./memberProfile";
+import { cn } from "./lib/utils";
 import { Button } from "./components/ui/button";
 import {
   Dialog,
@@ -590,12 +591,15 @@ function OrderSelect(props: { orders: HomeScreen["filing"]["liveOrders"]; value:
   );
 }
 
-function Lines(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+function Lines({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea
       rows={2}
       {...props}
-      className="w-full resize-y rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className={cn(
+        "w-full resize-y rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        className,
+      )}
     />
   );
 }
@@ -610,21 +614,33 @@ export function ConfirmDraftDialog(props: { item: HomeItem; tenantId: number; to
   const [draftNote, setDraftNote] = useState("");
   const [draftPhase, setDraftPhase] = useState<"loading" | "ready">("loading");
   const [fillNote, setFillNote] = useState("");
+  const [flash, setFlash] = useState("");
   const { error, pending, submit } = useSubmit(props.onDone);
   const current = { progress, reason, highlights, hiddenPoints };
+  const writtenCount = (["progress", "reason", "highlights", "hiddenPoints"] as const).filter((field) => !isUnwritten(current[field], field)).length;
+
+  useEffect(() => {
+    if (!flash) return;
+    const timer = setTimeout(() => setFlash(""), 750);
+    return () => clearTimeout(timer);
+  }, [flash]);
 
   function applyCopy(copy: RecommendationCopy, fields?: Array<keyof RecommendationCopy>) {
     const next = { ...current };
+    const target = fields ?? (Object.keys(next) as Array<keyof RecommendationCopy>);
     let filled = 0;
-    for (const field of fields ?? (Object.keys(next) as Array<keyof RecommendationCopy>)) {
+    const touched: string[] = [];
+    for (const field of target) {
       if (!isUnwritten(next[field], field)) continue;
       next[field] = copy[field];
       filled += 1;
+      touched.push(field);
     }
     setProgress(next.progress);
     setReason(next.reason);
     setHighlights(next.highlights);
     setHiddenPoints(next.hiddenPoints);
+    setFlash(touched.join(" "));
     setFillNote(filled > 0 ? "已补上还空着的项，已经写过的没有改。" : "这四项都已经写过了。");
   }
 
@@ -655,7 +671,7 @@ export function ConfirmDraftDialog(props: { item: HomeItem; tenantId: number; to
           (props.item.memberId ?? 0) * 17 + (props.item.guestMemberId ?? 0),
         );
         setDraft(copy);
-        setDraftNote("这次没调通，已用本地写法");
+        setDraftNote("这次用的是本地草稿");
         setDraftPhase("ready");
       });
     return () => {
@@ -686,7 +702,7 @@ export function ConfirmDraftDialog(props: { item: HomeItem; tenantId: number; to
           (props.item.memberId ?? 0) * 17 + (props.item.guestMemberId ?? 0),
         );
         setDraft(copy);
-        setDraftNote("这次没调通，已用本地写法");
+        setDraftNote("这次用的是本地草稿");
         setDraftPhase("ready");
       });
   }
@@ -705,11 +721,12 @@ export function ConfirmDraftDialog(props: { item: HomeItem; tenantId: number; to
         </DialogHeader>
         <section className="grid gap-2 rounded-md border border-border bg-accent p-3 text-sm">
           <div className="flex items-center justify-between gap-2">
-            <p className="font-medium">AI 草稿</p>
+            <p className="font-medium">AI 起草 · 你可以改</p>
             <Button type="button" variant="outline" size="sm" disabled={pending || draftPhase === "loading"} onClick={refreshDraft}>
               换一版
             </Button>
           </div>
+          {writtenCount > 0 ? <p className="text-xs text-muted-foreground">✓ 你已经写过了 {writtenCount} 项，AI 不会动它。</p> : null}
           {draftPhase === "loading" ? <p className="text-xs text-muted-foreground">正在准备草稿。</p> : null}
           {draftNote ? <p className="text-xs text-muted-foreground">{draftNote}</p> : null}
           {draft ? (
@@ -735,21 +752,22 @@ export function ConfirmDraftDialog(props: { item: HomeItem; tenantId: number; to
               <Button type="button" size="sm" className="w-fit" disabled={pending} onClick={() => applyCopy(draft)}>
                 全部采用
               </Button>
+              <p className="text-xs text-muted-foreground">这是 AI 写的，红娘以你的话为准。</p>
             </div>
           ) : null}
         </section>
         {fillNote ? <p className="text-xs text-muted-foreground">{fillNote}</p> : null}
         <Field label="进度">
-          <Lines value={progress} onChange={(event) => setProgress(event.target.value)} />
+          <Lines value={progress} onChange={(event) => setProgress(event.target.value)} className={flash.split(" ").includes("progress") ? "field-flash" : undefined} />
         </Field>
         <Field label="理由">
-          <Lines value={reason} onChange={(event) => setReason(event.target.value)} />
+          <Lines value={reason} onChange={(event) => setReason(event.target.value)} className={flash.split(" ").includes("reason") ? "field-flash" : undefined} />
         </Field>
         <Field label="亮点">
-          <Lines value={highlights} onChange={(event) => setHighlights(event.target.value)} />
+          <Lines value={highlights} onChange={(event) => setHighlights(event.target.value)} className={flash.split(" ").includes("highlights") ? "field-flash" : undefined} />
         </Field>
         <Field label="需要隐瞒的点">
-          <Lines value={hiddenPoints} onChange={(event) => setHiddenPoints(event.target.value)} />
+          <Lines value={hiddenPoints} onChange={(event) => setHiddenPoints(event.target.value)} className={flash.split(" ").includes("hiddenPoints") ? "field-flash" : undefined} />
         </Field>
         <ErrorLine error={error} />
         <DialogFooter>
@@ -841,7 +859,7 @@ export function ConsentButtons(props: { applicationId: number; onDone: () => Pro
         <Button type="button" size="sm" disabled={pending} onClick={() => void submit(() => postAction("/api/actions/set-close-consent", { applicationId: props.applicationId, consent: true }).then(() => undefined))}>
           用户同意
         </Button>
-        <Button type="button" size="sm" variant="link" disabled={pending} onClick={() => void submit(() => postAction("/api/actions/set-close-consent", { applicationId: props.applicationId, consent: false }).then(() => undefined))}>
+        <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => void submit(() => postAction("/api/actions/set-close-consent", { applicationId: props.applicationId, consent: false }).then(() => undefined))}>
           用户不同意
         </Button>
       </div>
@@ -888,7 +906,7 @@ export function ReviewButtons(props: { item: HomeItem; today: string; reviewerId
         title="驳回"
         description="驳回只改这张申请，服务实例保持原状。"
         trigger="驳回"
-        variant="link"
+        variant="outline"
         today={props.today}
         reviewerId={props.reviewerId}
         askCloser={false}

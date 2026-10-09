@@ -23,7 +23,7 @@ export function reviewsForTab(items: HomeItem[], tab: ReviewTabId) {
 
 export function ReviewSubTabs(props: { items: HomeItem[]; value: ReviewTabId; onChange: (tab: ReviewTabId) => void }) {
   return (
-    <div className="flex gap-1 overflow-x-auto rounded-xl bg-[#F0EEEA] p-1" role="tablist" aria-label="审核分档">
+    <div className="flex gap-1 overflow-x-auto rounded-xl bg-muted p-1" role="tablist" aria-label="审核分档">
       {REVIEW_TABS.map((tab) => {
         const count = reviewsForTab(props.items, tab.id).length;
         const active = props.value === tab.id;
@@ -34,7 +34,7 @@ export function ReviewSubTabs(props: { items: HomeItem[]; value: ReviewTabId; on
             role="tab"
             aria-selected={active}
             onClick={() => props.onChange(tab.id)}
-            className={`whitespace-nowrap rounded-lg px-4 py-2.5 text-xs font-semibold transition ${active ? "bg-white text-[#35322E] shadow-[0_2px_8px_rgba(35,32,25,0.07)]" : "text-[#85817A] hover:text-[#4C4944]"}`}
+            className={`whitespace-nowrap rounded-lg px-4 py-2.5 text-xs font-semibold transition ${active ? "bg-white text-foreground shadow-[0_2px_8px_rgba(35,32,25,0.07)]" : "text-muted-foreground hover:text-foreground"}`}
           >
             {tab.label}
             <span className="ml-1.5 opacity-60">{count}</span>

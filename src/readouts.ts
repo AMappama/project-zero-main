@@ -9,8 +9,8 @@ export type Achievements = {
 export async function countAchievements(pool: Pool, tenantId: number): Promise<Achievements> {
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT
-      (SELECT COUNT(*) FROM meetings WHERE tenant_id = ?) AS meetings,
-      (SELECT COUNT(*) FROM applications WHERE tenant_id = ?) AS applications,
+      (SELECT COUNT(*) FROM meetings WHERE tenant_id = ? AND result IS NOT NULL AND result <> '') AS meetings,
+      (SELECT COUNT(*) FROM applications WHERE tenant_id = ? AND status = '通过') AS applications,
       (SELECT COUNT(*) FROM notes WHERE tenant_id = ?) AS notes`,
     [tenantId, tenantId, tenantId],
   );

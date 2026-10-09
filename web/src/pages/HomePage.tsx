@@ -19,11 +19,52 @@ import { ReviewSubTabs, reviewsForTab, type ReviewTabId } from "../reviewTabs";
 import { memberHref, readReviewTab, rememberHome, withFrom } from "../returnTo";
 
 const LANES = [
-  { id: "urgent", label: "要紧", kinds: ["见面结果", "起草关单", "关单建议"] },
-  { id: "reply", label: "要回应", kinds: ["推荐草稿", "换人", "开启缺口"] },
-  { id: "approve", label: "要点头", kinds: ["赠送", "暂停", "关单"] },
-  { id: "plan", label: "待安排", kinds: ["要暂停", "要赠送", "提前关单", "提前恢复"] },
+  {
+    id: "urgent",
+    label: "要紧",
+    tone: "bg-care/12 text-care-ink",
+    countLabel: "位在等你",
+    kinds: ["见面结果", "起草关单", "关单建议"],
+  },
+  {
+    id: "reply",
+    label: "要回应",
+    tone: "bg-primary/10 text-primary",
+    countLabel: "位在等回应",
+    kinds: ["推荐草稿", "换人", "开启缺口"],
+  },
+  {
+    id: "approve",
+    label: "要点头",
+    tone: "bg-warn/15 text-warn-ink",
+    countLabel: "张等你点头",
+    kinds: ["赠送", "暂停", "关单"],
+  },
+  {
+    id: "plan",
+    label: "待安排",
+    tone: "bg-secondary text-secondary-foreground",
+    countLabel: "件可以安排",
+    kinds: ["要暂停", "要赠送", "提前关单", "提前恢复"],
+  },
 ] as const;
+
+/** 状态语气，替掉系统分类词。完整语义由摘要行承担，这里只留极短标记。 */
+const PILL: Record<string, string> = {
+  推荐草稿: "等你确认",
+  见面结果: "等你记",
+  起草关单: "等你记",
+  关单建议: "等你办",
+  开启缺口: "等条件",
+  换人: "等换人",
+  要暂停: "可以办",
+  要赠送: "可以办",
+  提前关单: "可以办",
+  提前恢复: "可以办",
+  赠送: "等你点头",
+  暂停: "等你点头",
+  关单: "等你点头",
+};
 
 export function HomePage({ workspace, account }: { workspace: Workspace; account: Account }) {
   const matchmaker = hasPermission(account, "红娘");
@@ -99,15 +140,23 @@ export function HomePage({ workspace, account }: { workspace: Workspace; account
   return (
     <div>
       <section className="mb-7">
-        <p className="mb-2 text-xs font-semibold text-[var(--color-care)]">今日</p>
+        <p className="mb-2 text-xs font-semibold text-care">今日</p>
         <h1 className="text-[30px] font-bold tracking-[-0.04em] sm:text-[36px]">先处理今天要人看的事</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-          {formatDay(workspace.today)}。{account.name}登录。确认之后才落账，审核通过才改服务。
+          {formatDay(workspace.today)}。确认之后才落账，审核通过才改服务。
         </p>
         {ribbon ? (
-          <p className="mt-3 text-sm text-[var(--color-celebrate)]">
-            已发生见面 {ribbon.meetings} · 申请 {ribbon.applications} · 小记 {ribbon.notes}
-          </p>
+          <div className="ribbon mt-4 flex flex-wrap items-baseline gap-x-6 gap-y-2 rounded-2xl px-5 py-4 text-sm text-care-ink shadow-card">
+            <span>
+              <span className="font-serif text-xl font-bold text-care">{ribbon.meetings}</span> 场见面落了结果
+            </span>
+            <span>
+              <span className="font-serif text-xl font-bold text-care">{ribbon.applications}</span> 张申请审完
+            </span>
+            <span>
+              <span className="font-serif text-xl font-bold text-care">{ribbon.notes}</span> 条小记写下了
+            </span>
+          </div>
         ) : null}
       </section>
 
@@ -117,7 +166,7 @@ export function HomePage({ workspace, account }: { workspace: Workspace; account
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="搜索会员、订单或这一单要做的事"
-          className="h-11 w-full rounded-xl border border-border bg-card px-4 text-xs outline-none focus:ring-4 focus:ring-[var(--color-care)]/10"
+          className="h-11 w-full rounded-xl border border-border bg-card px-4 text-xs outline-none focus:ring-4 focus:ring-primary/15"
         />
       </label>
 
@@ -133,9 +182,9 @@ export function HomePage({ workspace, account }: { workspace: Workspace; account
       {phase === "ready" && rows.length === 0 ? (
         <div className="grid min-h-[220px] place-items-center rounded-2xl border border-border bg-card px-5 text-center">
           <div>
-            <p className="text-sm text-muted-foreground">{query.trim() ? "没有符合这几个字的单。" : "现在没有要处理的，去会员库看看谁该回访"}</p>
+            <p className="text-sm text-muted-foreground">{query.trim() ? "没有符合这几个字的单。" : "今天没有要赶的事。要不要看看谁该回访？"}</p>
             {query.trim() ? null : (
-              <a className="mt-3 inline-block text-sm font-semibold text-[var(--color-care)]" href="/library">
+              <a className="mt-3 inline-block rounded-lg bg-care px-3 py-2 text-sm font-semibold text-white" href="/library">
                 去会员库
               </a>
             )}
@@ -145,10 +194,12 @@ export function HomePage({ workspace, account }: { workspace: Workspace; account
       {phase === "ready" && home
         ? grouped.map((lane) =>
             lane.items.length === 0 ? null : (
-              <section key={lane.id} className="mb-5 overflow-hidden rounded-2xl border border-border bg-card">
+              <section key={lane.id} className="mb-5 overflow-hidden rounded-2xl border border-border bg-card shadow-card">
                 <div className="flex items-center justify-between border-b border-border px-5 py-4">
                   <h2 className="text-lg">{lane.label}</h2>
-                  <span className="text-xs text-muted-foreground">{lane.items.length} 条</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {lane.items.length} {lane.countLabel}
+                  </span>
                 </div>
                 {lane.id === "approve" ? (
                   <div className="border-b border-border px-5 py-3">
@@ -157,27 +208,35 @@ export function HomePage({ workspace, account }: { workspace: Workspace; account
                 ) : null}
                 <div className="divide-y divide-border">
                   {lane.items.map((item) => (
-                    <article key={item.key} data-home-card tabIndex={0} className="flex w-full flex-col gap-3 px-5 py-4 outline-none focus:bg-accent md:flex-row md:items-center">
-                      <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <article key={item.key} data-home-card tabIndex={0} className="card-in flex w-full flex-col gap-3 px-5 py-4 outline-none focus:bg-accent md:flex-row md:items-start">
+                      <div className="flex min-w-0 flex-1 items-start gap-3">
                         <MemberLink memberId={item.memberId} />
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-sm font-semibold">{memberName(item.memberId)}</p>
-                          <h3 className="mt-1 text-base">{item.summary || item.title}</h3>
-                          {item.todayFacts && item.todayFacts.length > 0 ? <p className="mt-1 text-xs text-[var(--color-warn)]">{item.todayFacts.join(" · ")}</p> : null}
-                          <p className="mt-1 text-xs leading-5 text-muted-foreground">{nameMembers(item.detail)}</p>
+                          <h3 className="mt-0.5 text-[15px] font-medium">{item.summary || item.title}</h3>
+                          {item.todayFacts && item.todayFacts.length > 0 ? <p className="mt-1 text-xs text-warn-ink">{item.todayFacts.join(" · ")}</p> : null}
+                          <details className="group mt-1">
+                            <summary className="w-fit cursor-pointer list-none text-xs font-semibold text-muted-foreground transition hover:text-foreground">
+                              <span aria-hidden="true" className="mr-1 inline-block transition group-open:rotate-90">
+                                ›
+                              </span>
+                              为什么
+                            </summary>
+                            <p className="mt-1.5 max-w-[62ch] text-[13px] leading-[1.7] text-muted-foreground">{nameMembers(item.detail)}</p>
+                          </details>
                           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
                             {item.memberId ? (
-                              <a className="text-[10px] font-semibold text-[var(--color-care)]" href={memberHref(item.memberId)}>
+                              <a className="text-[10px] font-semibold text-primary" href={memberHref(item.memberId)}>
                                 打开档案{item.orderId ? ` · 订单 ${item.orderId}` : ""}
                               </a>
                             ) : null}
                             {item.meetingId ? (
-                              <a className="text-[10px] font-semibold text-[var(--color-care)]" href={withFrom(`/meetings/${item.meetingId}`)}>
+                              <a className="text-[10px] font-semibold text-primary" href={withFrom(`/meetings/${item.meetingId}`)}>
                                 打开这场约会
                               </a>
                             ) : null}
                             {item.applicationId && (item.kind === "赠送" || item.kind === "暂停" || item.kind === "关单") ? (
-                              <a className="text-[10px] font-semibold text-[var(--color-care)]" href={withFrom(`/reviews/${item.applicationId}`)}>
+                              <a className="text-[10px] font-semibold text-primary" href={withFrom(`/reviews/${item.applicationId}`)}>
                                 打开这张审核
                               </a>
                             ) : null}
@@ -185,7 +244,7 @@ export function HomePage({ workspace, account }: { workspace: Workspace; account
                         </div>
                       </div>
                       <div className="flex items-center gap-3 md:w-[280px] md:justify-end">
-                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${pillTone(item.kind)}`}>{item.title}</span>
+                        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold ${lane.tone}`}>{PILL[item.kind] ?? item.title}</span>
                         <RowAction item={item} matchmaker={matchmaker} reviewer={reviewer} actorId={account.personId} home={home} workspace={workspace} onDone={reload} />
                       </div>
                     </article>
@@ -209,20 +268,13 @@ function nameMembers(text: string) {
 }
 
 function MemberLink({ memberId }: { memberId: number | null }) {
-  const avatar = memberId == null ? <MemberAvatar name="—" /> : <MemberAvatar name={memberProfile(memberId).name} src={memberProfile(memberId).avatar} />;
-  if (memberId == null) return avatar;
+  if (memberId == null) return <MemberAvatar name="—" />;
+  const profile = memberProfile(memberId);
   return (
-    <a href={memberHref(memberId)} className="shrink-0 rounded-full" aria-label={memberProfile(memberId).name}>
-      {avatar}
+    <a href={memberHref(memberId)} className="shrink-0 rounded-full" aria-label={profile.name}>
+      <MemberAvatar name={profile.name} src={profile.avatar} placeholder={profile.placeholder} />
     </a>
   );
-}
-
-function pillTone(kind: string) {
-  if (kind === "推荐草稿" || kind === "见面结果" || kind === "起草关单" || kind === "关单建议") return "bg-[#ECEAFB] text-[#5650C6]";
-  if (kind === "赠送" || kind === "暂停" || kind === "关单") return "bg-[#F5EBD9] text-[#956626]";
-  if (kind === "提前恢复" || kind === "要暂停" || kind === "要赠送" || kind === "提前关单") return "bg-[#E2F1E9] text-[#397A5B]";
-  return "bg-[#F8E7EA] text-[#B54E61]";
 }
 
 function RowAction({

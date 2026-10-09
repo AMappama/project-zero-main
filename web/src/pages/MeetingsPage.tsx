@@ -52,17 +52,17 @@ export function MeetingsPage({ workspace, account }: { workspace: Workspace; acc
     <Page title="约会" intro="这份名单来自约会查询。点开一场约会看详情，返回回到这里。到点还没有结果的，只补这条约会自己的结果。">
       <Status phase={phase} error={error} onRetry={() => void load()} loading="正在读取约会。" />
       {phase === "ready" && meetings.length === 0 ? (
-        <p className="text-sm text-[#77746E]">还没有约会。确认了对象和时间之后，写在这里。</p>
+        <p className="text-sm text-muted-foreground">还没有约会。确认了对象和时间之后，写在这里。</p>
       ) : null}
       {phase === "ready" && meetings.length > 0 ? (
         <div className="overflow-hidden rounded-2xl border border-black/[0.055] bg-white shadow-sm">
           {meetings.map((meeting) => (
             <div key={meeting.id} className="border-b border-black/[0.045] last:border-b-0">
-              <a href={withFrom(`/meetings/${meeting.id}`)} className="block px-5 py-4 hover:bg-[#FBFAF8]">
+              <a href={withFrom(`/meetings/${meeting.id}`)} className="block px-5 py-4 hover:bg-surface">
                 <span className="block text-sm font-semibold">
                   会员 {meeting.serviceMemberId} · {meeting.meetOn ?? "未定日期"}
                 </span>
-                <span className="mt-1 block text-xs text-[#68655F]">
+                <span className="mt-1 block text-xs text-muted-foreground">
                   {meeting.place || "未定地点"} · 对象 {meeting.externalName || (meeting.memberId ? `会员 ${meeting.memberId}` : "未定")} · 结果{" "}
                   {meeting.result || "还没填"}
                   {dueIds.includes(meeting.id) ? " · 到点了" : ""}

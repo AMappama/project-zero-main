@@ -34,9 +34,9 @@ export function ReviewDetailPage({ workspace, account, applicationId }: { worksp
         <article className="grid gap-3 rounded-2xl border border-black/[0.055] bg-white p-5 shadow-sm">
           <div>
             <h2 className="text-sm font-semibold">{item.title}</h2>
-            <p className="mt-1 text-sm leading-6 text-[#68655F]">{item.detail}</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p>
             {item.memberId ? (
-              <a className="mt-1 inline-block text-[10px] font-semibold text-[#5B55D6]" href={memberHref(item.memberId)}>
+              <a className="mt-1 inline-block text-[10px] font-semibold text-primary" href={memberHref(item.memberId)}>
                 会员 {item.memberId}
                 {item.orderId ? ` · 订单 ${item.orderId}` : ""}
               </a>

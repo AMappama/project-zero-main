@@ -3,7 +3,7 @@ import { suggestRecommendationCopy, type RecommendationCopy } from "../../web/sr
 export type { RecommendationCopy };
 export { suggestRecommendationCopy };
 
-export const LOCAL_FAILURE_NOTICE = "这次没调通，已用本地写法";
+export const LOCAL_FAILURE_NOTICE = "这次用的是本地草稿";
 
 export function clip(text: string, max: number) {
   const chars = Array.from(text.trim());

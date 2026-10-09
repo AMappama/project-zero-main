@@ -3,6 +3,8 @@ import { getJson, type MemberProfileRecord } from "./api";
 export type MemberProfile = {
   name: string;
   avatar?: string;
+  /** 画像还没接上时的兜底名，头像不显示数字缩写。 */
+  placeholder?: boolean;
 };
 
 /** 已有的演示头像。没有文件的会员不补照片。 */
@@ -27,14 +29,14 @@ export async function loadMemberProfiles() {
 }
 
 export function memberProfile(memberId: number): MemberProfile {
-  return {
-    name: names.get(memberId) || `会员 ${memberId}`,
-    avatar: AVATARS[memberId],
-  };
+  const name = names.get(memberId);
+  if (name) return { name, avatar: AVATARS[memberId] };
+  return { name: `会员 ${memberId}`, placeholder: true };
 }
 
-/** 两字及以内用全名，更长的名字用名字后两字。 */
+/** 两字及以内用全名，更长的名字用名字后两字。兜底的系统名不拆成数字。 */
 export function nameAbbr(name: string) {
+  if (/^会员\s*\d+$/.test(name)) return "?";
   const chars = Array.from(name.replace(/\s/g, ""));
   if (chars.length <= 2) return chars.join("");
   return chars.slice(-2).join("");

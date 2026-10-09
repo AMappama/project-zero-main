@@ -3,12 +3,12 @@
 @theme {
   --font-sans: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Noto Serif SC", "Songti SC", "SimSun", serif;
+
   --color-background: #faf7f2;
+  --color-surface: #fbfaf8;
   --color-foreground: #2a2622;
   --color-card: #ffffff;
   --color-card-foreground: #2a2622;
-  --color-primary: #e8735a;
-  --color-primary-foreground: #ffffff;
   --color-secondary: #f3ebe3;
   --color-secondary-foreground: #6a4336;
   --color-muted: #f3efe8;
@@ -19,10 +19,20 @@
   --color-destructive-foreground: #ffffff;
   --color-border: #eadfd4;
   --color-input: #eadfd4;
-  --color-ring: #e8735a;
+
+  --color-primary: #5a5fc7;
+  --color-primary-foreground: #ffffff;
+
   --color-care: #e8735a;
+  --color-care-ink: #a6472f;
   --color-celebrate: #d99a2b;
+  --color-celebrate-ink: #8a6118;
   --color-warn: #d9a441;
+  --color-warn-ink: #8a6a1f;
+
+  --color-ring: #5a5fc7;
+
+  --shadow-card: 0 6px 24px rgba(232, 115, 90, 0.07);
 }
 
 h1,
@@ -40,4 +50,47 @@ body {
   margin: 0;
   background: var(--color-background);
   color: var(--color-foreground);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes card-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .card-in {
+    animation: card-in 160ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  }
+
+  @keyframes field-flash {
+    from {
+      background-color: rgba(232, 115, 90, 0.16);
+      border-color: rgba(232, 115, 90, 0.45);
+    }
+    to {
+      background-color: transparent;
+      border-color: var(--color-input);
+    }
+  }
+
+  .field-flash {
+    animation: field-flash 700ms ease-out both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-in,
+  .field-flash {
+    animation: none;
+  }
+}
+
+.ribbon {
+  background: linear-gradient(135deg, #fdf3ec, #fbe9de);
 }

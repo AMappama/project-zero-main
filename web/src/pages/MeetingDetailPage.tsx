@@ -46,13 +46,13 @@ export function MeetingDetailPage({ workspace, meetingId }: { workspace: Workspa
       {phase === "ready" && meeting ? (
         <article className="grid gap-3 rounded-2xl border border-black/[0.055] bg-white p-5 text-sm shadow-sm">
           <p>
-            <a className="font-semibold text-[#5B55D6]" href={memberHref(meeting.serviceMemberId)}>
+            <a className="font-semibold text-primary" href={memberHref(meeting.serviceMemberId)}>
               会员 {meeting.serviceMemberId}
             </a>
             {" · "}
             {meeting.meetOn ?? "未定日期"} · {meeting.place || "未定地点"}
           </p>
-          <p className="text-[#68655F]">
+          <p className="text-muted-foreground">
             对象 {meeting.externalName || (meeting.memberId ? `会员 ${meeting.memberId}` : "未定")} · 结果 {meeting.result || "还没填"}
             {due ? " · 到点了" : ""}
           </p>

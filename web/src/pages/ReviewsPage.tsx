@@ -51,22 +51,22 @@ export function ReviewsPage({ workspace, account }: { workspace: Workspace; acco
             <Status phase={phase} error={error} onRetry={() => void load()} loading="正在读取待审申请。" />
           </div>
         ) : null}
-        {phase === "ready" && rows.length === 0 ? <p className="px-5 py-8 text-sm text-[#918E87]">{EMPTY[tab]}</p> : null}
+        {phase === "ready" && rows.length === 0 ? <p className="px-5 py-8 text-sm text-muted-foreground">{EMPTY[tab]}</p> : null}
         {phase === "ready" ? (
           <div className="divide-y divide-black/[0.045]">
             {rows.map((item) => (
               <article key={item.key} className="grid gap-3 px-5 py-4">
                 <div>
                   {item.applicationId ? (
-                    <a className="text-sm font-semibold text-[#5B55D6]" href={withFrom(`/reviews/${item.applicationId}`)}>
+                    <a className="text-sm font-semibold text-primary" href={withFrom(`/reviews/${item.applicationId}`)}>
                       {item.title}
                     </a>
                   ) : (
                     <h2 className="text-sm font-semibold">{item.title}</h2>
                   )}
-                  <p className="mt-1 text-sm leading-6 text-[#68655F]">{item.detail}</p>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p>
                   {item.memberId ? (
-                    <a className="mt-1 inline-block text-[10px] font-semibold text-[#5B55D6]" href={memberHref(item.memberId)}>
+                    <a className="mt-1 inline-block text-[10px] font-semibold text-primary" href={memberHref(item.memberId)}>
                       会员 {item.memberId}
                       {item.orderId ? ` · 订单 ${item.orderId}` : ""}
                     </a>

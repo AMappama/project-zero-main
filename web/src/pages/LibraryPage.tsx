@@ -33,32 +33,32 @@ export function LibraryPage({ workspace, account }: { workspace: Workspace; acco
   return (
     <Page
       title="服务库"
-      intro={`${account.name}名下，待启用、启用中、暂停，或红娘领取之后仍归这位服务人的会员。名单来自服务库查询。点开一位会员看详情，返回回到这里。`}
+      intro={`${account.name} 名下的会员。点开一位看详情。`}
     >
       <Status phase={phase} error={error} onRetry={() => void load()} loading="正在读取服务库。" />
       {phase === "ready" && rows.length === 0 ? (
-        <p className="text-sm text-[#77746E]">这位服务人名下现在没有待开启或服务期内的会员，也没有红娘领取后仍在库里的人。</p>
+        <p className="text-sm text-muted-foreground">你手上现在很轻，名下没有在服务的会员。</p>
       ) : null}
       {phase === "ready" ? (
-        <div className="overflow-hidden rounded-2xl border border-black/[0.055] bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-black/[0.055] bg-white shadow-card">
           {rows.map((row) => {
             const profile = memberProfile(row.memberId);
             return (
               <a
                 key={row.memberId}
                 href={memberHref(row.memberId)}
-                className="flex items-center justify-between gap-3 border-b border-black/[0.045] px-5 py-3.5 last:border-b-0 hover:bg-[#FBFAF8]"
+                className="flex items-center justify-between gap-3 border-b border-black/[0.045] px-5 py-3.5 last:border-b-0 hover:bg-surface"
               >
                 <span className="flex min-w-0 items-center gap-3">
-                  <MemberAvatar name={profile.name} src={profile.avatar} />
+                  <MemberAvatar name={profile.name} src={profile.avatar} placeholder={profile.placeholder} />
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-semibold">{profile.name}</span>
-                    <span className="mt-1 block truncate text-xs text-[#68655F]">
-                      会员 {row.memberId} · 门店 {row.shopId} · 来源 {row.source}
+                    <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                      会员 {row.memberId} · 门店 {row.shopId}
                     </span>
                   </span>
                 </span>
-                <span className="shrink-0 text-xs font-semibold text-[#5B55D6]">打开</span>
+                <span className="shrink-0 text-xs font-semibold text-primary">打开</span>
               </a>
             );
           })}
@@ -86,19 +86,19 @@ export function Page({
       {back ? (
         <a
           href={returnHref(fallback)}
-          className="inline-flex w-fit items-center gap-2 rounded-xl border border-black/[0.08] bg-white px-3 py-2 text-sm font-semibold text-[#35322E] shadow-sm"
+          className="inline-flex w-fit items-center gap-2 rounded-xl border border-black/[0.08] bg-white px-3 py-2 text-sm font-semibold text-foreground shadow-card"
         >
           <span aria-hidden="true">←</span>
           返回
         </a>
       ) : null}
       <div>
-        <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-[#5B55D6]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#5B55D6]" />
-          服务跟进
+        <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-primary">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          业务
         </div>
         <h1 className="text-[30px] font-bold tracking-[-0.04em]">{title}</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-[#77746E]">{intro}</p>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{intro}</p>
       </div>
       {children}
     </div>

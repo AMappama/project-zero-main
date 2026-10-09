@@ -48,9 +48,9 @@ export function OverduePage({ workspace, account }: { workspace: Workspace; acco
   return (
     <Page title="过期 VIP" intro="名单来自过期 VIP 查询：已完成、关单两级通过并且四项齐全、当前没有有效服务归属。点开一位会员看详情，返回回到这里。领取之后就离开这份名单。">
       <Status phase={phase} error={error} onRetry={() => void load()} loading="正在读取过期 VIP。" />
-      {actionError ? <p className="text-sm text-[#B54E61]">{actionError}</p> : null}
+      {actionError ? <p className="text-sm text-destructive">{actionError}</p> : null}
       {phase === "ready" && rows.length === 0 ? (
-        <p className="text-sm text-[#77746E]">
+        <p className="text-sm text-muted-foreground">
           现在没有待领取的过期 VIP。要同时满足：服务已完成、关单两级通过并且记了是否同意、原因、关单人和当时的服务人，而且当前没有有效服务归属。
         </p>
       ) : null}
@@ -58,9 +58,9 @@ export function OverduePage({ workspace, account }: { workspace: Workspace; acco
         <div className="overflow-hidden rounded-2xl border border-black/[0.055] bg-white shadow-sm">
           {rows.map((row) => (
             <div key={row.memberId} className="border-b border-black/[0.045] px-5 py-4 last:border-b-0">
-              <a href={memberHref(row.memberId)} className="block hover:text-[#5049C5]">
+              <a href={memberHref(row.memberId)} className="block hover:text-primary">
                 <span className="block text-sm font-semibold">会员 {row.memberId}</span>
-                <span className="mt-1 block text-xs text-[#68655F]">
+                <span className="mt-1 block text-xs text-muted-foreground">
                   订单 {row.orderId} · {row.consent ? "用户同意关单" : "用户不同意关单"} · 原因 {row.reason} · 关单人 {row.closedBy} · 当时的服务人{" "}
                   {row.servicePersonId}
                 </span>
