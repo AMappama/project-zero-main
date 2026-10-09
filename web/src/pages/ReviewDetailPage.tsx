@@ -36,7 +36,7 @@ export function ReviewDetailPage({ workspace, account, applicationId }: { worksp
             <h2 className="text-sm font-semibold">{item.title}</h2>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p>
             {item.memberId ? (
-              <a className="mt-1 inline-block text-[10px] font-semibold text-primary" href={memberHref(item.memberId)}>
+              <a className="mt-1 inline-block text-[11.5px] font-bold text-primary" href={memberHref(item.memberId)}>
                 会员 {item.memberId}
                 {item.orderId ? ` · 订单 ${item.orderId}` : ""}
               </a>

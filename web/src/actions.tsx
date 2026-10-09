@@ -16,7 +16,7 @@ import {
 import { Input } from "./components/ui/input";
 
 const fieldClass = "grid gap-1 text-sm";
-const selectClass = "h-9 w-full rounded-md border border-input bg-card px-3 text-sm";
+const selectClass = "h-10 w-full cursor-pointer rounded-[9px] border border-input bg-white px-3 text-[13px] font-semibold text-foreground transition-[border-color,box-shadow] duration-150";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -449,7 +449,7 @@ export function FileCloseDialog(props: {
       }}
     >
       <DialogTrigger asChild>
-        <Button type="button" variant={props.quiet ? "link" : "outline"} size="sm">
+        <Button type="button" variant="outline" size="sm">
           {props.trigger ?? "提前关单"}
         </Button>
       </DialogTrigger>

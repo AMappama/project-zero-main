@@ -53,7 +53,7 @@ export function LibraryPage({ workspace, account }: { workspace: Workspace; acco
                   <MemberAvatar name={profile.name} src={profile.avatar} placeholder={profile.placeholder} />
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-semibold">{profile.name}</span>
-                    <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                    <span className="mt-0.5 block text-[11px] text-[#8A8177]">
                       会员 {row.memberId} · 门店 {row.shopId}
                     </span>
                   </span>
@@ -93,11 +93,8 @@ export function Page({
         </a>
       ) : null}
       <div>
-        <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-primary">
-          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-          业务
-        </div>
-        <h1 className="text-[30px] font-bold tracking-[-0.04em]">{title}</h1>
+        <div className="mb-2 flex items-center gap-2 text-[11px] font-extrabold tracking-[0.1em] text-primary before:h-0.5 before:w-3.5 before:rounded-sm before:bg-primary">业务</div>
+        <h1 className="page-title text-[30px] leading-[1.3]">{title}</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{intro}</p>
       </div>
       {children}

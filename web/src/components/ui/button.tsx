@@ -4,21 +4,21 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../../lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[9px] text-[12.5px] font-bold transition-[color,background-color,border-color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        default: "bg-care text-white hover:bg-care/90",
+        default: "bg-primary text-white shadow-[0_2px_6px_rgba(205,63,107,0.25)] hover:bg-[#B02E57]",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-card hover:bg-accent",
+        outline: "border border-input bg-white text-foreground hover:border-[#8A8177]",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent",
-        link: "h-auto bg-transparent px-0 text-destructive underline-offset-4 hover:underline",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "h-auto bg-transparent px-2 font-bold text-muted-foreground hover:text-primary",
       },
       size: {
-        default: "h-9 px-4 py-2",
-        sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-10 rounded-md px-6",
+        default: "h-[34px] px-4",
+        sm: "h-[34px] px-4",
+        lg: "h-10 rounded-[10px] px-5 text-[13px]",
       },
     },
     defaultVariants: {
