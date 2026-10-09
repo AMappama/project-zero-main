@@ -1,0 +1,224 @@
+<section class="module" id="module-6" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">06</span>
+      <h1 class="module-title">名单对不上时，先对三把钥匙</h1>
+      <p class="module-subtitle">过期 VIP 不是「服务结束了」。重启会把你刚写的样本清掉。</p>
+    </header>
+
+    <div class="module-body">
+      <section class="screen animate-in">
+        <h2 class="screen-heading">保险柜要三把钥匙一起转</h2>
+        <p>过期 VIP 不是一张存好的表。它是一次<span class="term" data-definition="现查现算的问题，不是另存的一份名单。条件变了，下次打开结果就变。跟 AI 说：服务库、过期 VIP、处理中都是查询，不要新建池表。">查询</span>。少一把钥匙，人就不会出现在那一栏。红娘把过期会员领进自己的服务库之后，当前服务人换成这位红娘，人离开过期名单。</p>
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">1</div>
+            <h4 class="pattern-title">有完成的实例</h4>
+            <p class="pattern-desc">状态是完成，不是失效。退费走失效，不进这张名单。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">2</div>
+            <h4 class="pattern-title">关单四项齐全</h4>
+            <p class="pattern-desc">已通过的关单上，是否同意、原因、关单人、关单前服务人都不许空。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-5)">
+            <div class="pattern-icon" style="background: var(--color-actor-5)">3</div>
+            <h4 class="pattern-title">现在没人领着</h4>
+            <p class="pattern-desc">不能还有有效的服务归属。也不能有「关单后领取」的销售或邀约。</p>
+          </div>
+        </div>
+        <p>成交时留下、开启前就有的销售 / 邀约归属，不算这次领取。它们不把人从过期 VIP 里拿走。</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">钥匙缺一，函数直接说不</h2>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">代码</span>
+            <pre><code><span class="code-line">  <span class="code-keyword">const</span> completed = (<span class="code-keyword">await</span> <span class="code-function">instancesOfMember</span>(tx, memberId)).some((row) =&gt; row.status === <span class="code-string">"完成"</span>);</span>
+<span class="code-line">  <span class="code-keyword">if</span> (!completed) <span class="code-keyword">return</span> <span class="code-keyword">false</span>;</span>
+<span class="code-line">  <span class="code-keyword">const</span> approved = <span class="code-keyword">await</span> <span class="code-function">approvedClose</span>(tx, memberId);</span>
+<span class="code-line">  <span class="code-keyword">if</span> (!approved || approved.consent == <span class="code-keyword">null</span> || !approved.reason || approved.closedBy == <span class="code-keyword">null</span> || approved.servicePersonId == <span class="code-keyword">null</span>) {</span>
+<span class="code-line">    <span class="code-keyword">return</span> <span class="code-keyword">false</span>;</span>
+<span class="code-line">  }</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">白话</span>
+            <div class="translation-lines">
+              <p class="tl">这位会员有没有任何一本护照是「完成」。函数叫 <code>isOverdueMember</code>。</p>
+              <p class="tl">没有完成的，一定不是过期 VIP。</p>
+              <p class="tl">再找已经通过的关单申请。</p>
+              <p class="tl">申请不存在，或是否同意、原因、关单人、关单前服务人有一个空着，都不算。</p>
+              <p class="tl">直接否决。后面还要再查服务归属和关单后领取。</p>
+              <p class="tl">这把钥匙检查结束。</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">名单是问句，不是抽屉</strong>
+            <p>服务库问的是：当前服务人是不是我，状态是不是待启用、启用中或暂停。处理中问的是：申请还没走完吗。条件变了，刷新就变。不要让 AI 再造一张「过期池」表。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">重启像把排练厅连夜清空</h2>
+        <p>开发时每次 <code>npm run dev</code> 都会 <span class="term" data-definition="把表删掉再按建表语句重建。这里启动参数 reset: true 会丢掉你在页面上刚确认的推荐和审核。演示样本随后按 2026-09-30 重新铺上。">重置库表</span>，再用种子铺开同一天的样本。你下午点过的确认，晚上重启就不见了。这不是没保存，是程序故意清空。</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">代码</span>
+            <pre><code><span class="code-line"><span class="code-keyword">const</span> { crm, pool } = <span class="code-keyword">await</span> <span class="code-function">openFulfillment</span>({ reset: <span class="code-keyword">true</span> });</span>
+<span class="code-line"><span class="code-keyword">await</span> <span class="code-function">seedWorkbench</span>(crm);</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">白话</span>
+            <div class="translation-lines">
+              <p class="tl">打开履约库，并要求先删表重建。在 <code>src/server.ts</code>。</p>
+              <p class="tl">接着把演示日的红娘、会员和待办写进刚建好的表。</p>
+            </div>
+          </div>
+        </div>
+        <div class="arch-diagram">
+          <div class="arch-zone arch-zone-browser">
+            <h4 class="arch-zone-label">你点页面的时候</h4>
+            <div class="arch-component" data-desc="浏览器只画名单和按钮。它不决定谁是 VIP，也不保存登录以外的业务。">
+              <div class="arch-icon">览</div>
+              <span>工作台页面</span>
+            </div>
+            <div class="arch-component" data-desc="src/http.ts。看 Cookie 找到是谁，再按红娘或审核人决定接口能不能走。">
+              <div class="arch-icon">卫</div>
+              <span>接口门卫</span>
+            </div>
+          </div>
+          <div class="arch-zone arch-zone-external">
+            <h4 class="arch-zone-label">门后面的两间房</h4>
+            <div class="arch-component" data-desc="src/fulfillment.ts。开启、身份、关单、暂停、过期 VIP 的规则都在这里，一次动作一个事务。">
+              <div class="arch-icon">账</div>
+              <span>履约规则</span>
+            </div>
+            <div class="arch-component" data-desc="MySQL 存护照和申请。Redis 只存登录腕带。重启重置的是 MySQL 里的表，不是你的账号密码。">
+              <div class="arch-icon">库</div>
+              <span>MySQL 与 Redis</span>
+            </div>
+          </div>
+          <div class="arch-description" id="arch-desc">点一块，看它负责什么。修 bug 时先点到房间，再让 AI 改。</div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">跟 AI 卡住时，用这几句把它拉回来</h2>
+        <div class="icon-rows">
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-accent-light); color: var(--color-accent); font-weight: 700;">1</div>
+            <div>
+              <strong>空名单先问权限和查询条件</strong>
+              <p>林晓看不到审核，是权限裁剪。过期 VIP 缺一把钥匙，人就不会出现。不要先怀疑前端没渲染。</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-accent-light); color: var(--color-accent); font-weight: 700;">2</div>
+            <div>
+              <strong>手改身份会被触发器拒绝</strong>
+              <p>要改会员类型，就改服务实例，让同一次事务去回写缓存。不要 UPDATE members.member_type。</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-accent-light); color: var(--color-accent); font-weight: 700;">3</div>
+            <div>
+              <strong>一审、草稿、到期函都不改护照结局</strong>
+              <p>一审只推进申请。草稿不是推荐。到期函插入一行，不关单。实例变成完成，只发生在关单二审通过。</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-info">
+          <div class="callout-icon">✦</div>
+          <div class="callout-content">
+            <strong class="callout-title">下一步可以让 AI 做的，只有一件明确的事</strong>
+            <p>推荐补写仍是四组套姓名的句子。若要接模型，保持规则：只填空项，不覆盖已写内容，占位理由可以替换。别的账本规则先别一起改。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">如果你在值班</h2>
+        <div class="quiz-container" id="quiz-module6">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="完成还不够。已通过的关单必须四项齐全，而且当前不能有有效服务归属或关单后领取。先把关单申请打开看空了哪一项。"
+               data-explanation-wrong="过期 VIP 是三把钥匙的查询，不是「状态等于完成」的同义词。">
+            <div class="scenario-block">
+              <div class="scenario-context">
+                <span class="scenario-label">情景</span>
+                <p>实例已经是完成，过期 VIP 列表里却没有这个人。红娘说名单坏了。</p>
+              </div>
+            </div>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>让 AI 在关单通过时往过期池表插一行</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>检查关单四项是否齐全，以及现在有没有人领着他</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>清 Redis，让列表重新计算</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="server.ts 里 openFulfillment({ reset: true }) 会删表重建，再铺演示日样本。你确认过的草稿会一起消失。"
+               data-explanation-wrong="先看启动做了什么。这个开发服务器每次起来都重置业务库。">
+            <h3 class="quiz-question">你确认了一条推荐，重启 npm run dev 之后它不见了。最可能的原因？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>启动时重置了 MySQL，并重新播种 2026-09-30 的样本</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>确认只写在浏览器内存里，刷新必然丢失</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>推荐事实默认 7 天后过期，和登录腕带一样</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="触发器不允许随便改 member_type。正确路径是改实例状态，由 refreshIdentityCache 在锁打开的那一瞬间回写。"
+               data-explanation-wrong="身份缓存有写锁。页面上也没有手改入口。">
+            <h3 class="quiz-question">AI 为了「马上让他变成 VIP」，写了一条直接改 members.member_type 的语句。会怎样？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>可以。缓存本来就是给人改的</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>可以，但要同时改 Redis</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>数据库会拒绝。身份只能由改实例的事务回写</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module6')">对一下答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module6')">再试一次</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>

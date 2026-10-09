@@ -1,0 +1,235 @@
+<section class="module" id="module-4" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">04</span>
+      <h1 class="module-title">开启要过四道门</h1>
+      <p class="module-subtitle">付清、合同、服务人、开始日。少一张，人就停在待启用。</p>
+    </header>
+
+    <div class="module-body">
+      <section class="screen animate-in">
+        <h2 class="screen-heading">登机口不看心情，只看四张牌</h2>
+        <p>机场不会因为你「看起来像要飞」就放行。开启服务也只看四项，外加一个<span class="term" data-definition="一套独立的客户账本。不同门店公司的数据用租户编号隔开，开关也按租户存。跟 AI 说：设置挂在 tenant_settings，不要做成全局常量。">租户</span>开关。不检查实名。</p>
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">付</div>
+            <h4 class="pattern-title">订单</h4>
+            <p class="pattern-desc">付款状态得是 payable 或 paid。未付清，缺口写「订单」。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">合</div>
+            <h4 class="pattern-title">合同</h4>
+            <p class="pattern-desc">contract_check_status 必须等于 1，也就是审核通过。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-5)">
+            <div class="pattern-icon" style="background: var(--color-actor-5)">人</div>
+            <h4 class="pattern-title">服务人</h4>
+            <p class="pattern-desc">会员名下要有一条还有效的服务归属。没有就叫「缺服务人」。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">日</div>
+            <h4 class="pattern-title">计划开始日</h4>
+            <p class="pattern-desc">计划开始日不能晚于「今天」。今天是演示日，不是墙上的日历。</p>
+          </div>
+        </div>
+        <p>自动指定服务人时按门店角色排队：先红娘 matchmanager，再店长，再总监。三个角色都没有，就不开启。落到店长或总监名下的，首页例外里标成高优，等人换成红娘。</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">缺什么，代码就往缺口里丢什么</h2>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">代码</span>
+            <pre><code><span class="code-line">  <span class="code-keyword">const</span> missing: OpenGap[] = [];</span>
+<span class="code-line">  <span class="code-keyword">if</span> (!order || !<span class="code-function">paymentQualified</span>(order.paymentStatus)) missing.push(<span class="code-string">"订单"</span>);</span>
+<span class="code-line">  <span class="code-keyword">if</span> (order &amp;&amp; order.contractCheckStatus !== 1) missing.push(<span class="code-string">"合同"</span>);</span>
+<span class="code-line">  <span class="code-keyword">if</span> (!order) <span class="code-keyword">return</span> { ok: <span class="code-keyword">false</span>, missing };</span>
+<span class="code-line">  <span class="code-keyword">const</span> ownership = <span class="code-keyword">await</span> <span class="code-function">ownershipByMember</span>(tx, order.memberId);</span>
+<span class="code-line">  <span class="code-keyword">if</span> (!ownership?.active) missing.push(<span class="code-string">"缺服务人"</span>);</span>
+<span class="code-line">  <span class="code-keyword">if</span> (order.plannedStart &gt; input.today) missing.push(<span class="code-string">"计划开始日"</span>);</span>
+<span class="code-line">  <span class="code-keyword">const</span> settings = <span class="code-keyword">await</span> <span class="code-function">readSettings</span>(tx, order.tenantId);</span>
+<span class="code-line">  <span class="code-keyword">if</span> (input.openedBy === <span class="code-string">"system"</span> &amp;&amp; !settings.autoStart) missing.push(<span class="code-string">"确认开启"</span>);</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">白话</span>
+            <div class="translation-lines">
+              <p class="tl">准备一个缺口清单。这段在 <code>openServiceTx</code>。</p>
+              <p class="tl">没有订单，或钱还没到 payable / paid，记下「订单」。</p>
+              <p class="tl">有订单但合同不是审核通过，记下「合同」。</p>
+              <p class="tl">订单根本不存在就到此为止，不再往下看。</p>
+              <p class="tl">去查这位会员现在的服务归属。</p>
+              <p class="tl">没有有效服务人，记下「缺服务人」。</p>
+              <p class="tl">计划开始日还在演示日之后，记下「计划开始日」。</p>
+              <p class="tl">读这个租户的三个开关。</p>
+              <p class="tl">系统想自动开、但开关关着，记下「确认开启」。等人来点同一次开启。</p>
+            </div>
+          </div>
+        </div>
+        <p>四项都齐、实例还是待启用，才会写成启用中：写入起止和四类总量，已用为 0，成熟度记为新升级，并记下是谁开的、当时四项长什么样。</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">门开了，往出站口塞一张明信片</h2>
+        <p>开启成功不写系统小记。它写一条还没被取走的 <span class="term" data-definition="先和业务写在同一次事务里的事件，事后由别的程序来取。这样「服务已开启」不会在账本写到一半时就通知出去。这里的类型叫 ServiceStarted。">出站事件</span>。别的系统以后来取，取之前 <code>consumedAt</code> 是空的。</p>
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-4","label":"四张牌都在，自动开启开关也开着"},
+          {"highlight":"flow-actor-4","label":"同一事务里把实例改成启用中","packet":true,"from":"actor-4","to":"actor-5"},
+          {"highlight":"flow-actor-5","label":"成熟度写成新升级，身份缓存跟着重算"},
+          {"highlight":"flow-actor-5","label":"若兼容清理开着，停用还有效的销售和邀约归属"},
+          {"highlight":"flow-actor-5","label":"塞进一张 ServiceStarted 明信片","packet":true,"from":"actor-5","to":"actor-6"},
+          {"highlight":"flow-actor-6","label":"明信片先躺着，等别的程序来取。这一行不关单"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-4">
+              <div class="flow-actor-icon">门</div>
+              <span>四道门</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-5">
+              <div class="flow-actor-icon">账</div>
+              <span>服务实例</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-6">
+              <div class="flow-actor-icon">信</div>
+              <span>出站事件</span>
+            </div>
+          </div>
+          <div class="flow-packet"></div>
+          <div class="flow-step-label">点「下一步」看开启成功之后</div>
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">下一步</button>
+            <button class="btn flow-reset-btn">重看</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+        <div class="callout callout-info">
+          <div class="callout-icon">✦</div>
+          <div class="callout-content">
+            <strong class="callout-title">到期函是另一行，不改护照</strong>
+            <p><code>close_vip_contract</code> 只插入到期通知。签署回调只改这一行的状态。总结束日到了会起草关单，不自动通过。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">没配开关时，按这三句默认</h2>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">代码</span>
+            <pre><code><span class="code-line"><span class="code-keyword">async function</span> <span class="code-function">readSettings</span>(tx: Tx, tenantId: number): Promise&lt;Settings&gt; {</span>
+<span class="code-line">  <span class="code-keyword">const</span> settingsRow = <span class="code-keyword">await</span> <span class="code-function">firstRow</span>(</span>
+<span class="code-line">    tx.select().from(tenantSettings).where(<span class="code-function">eq</span>(tenantSettings.tenantId, tenantId)).limit(1),</span>
+<span class="code-line">  );</span>
+<span class="code-line">  <span class="code-keyword">if</span> (!settingsRow) <span class="code-keyword">return</span> { autoStart: <span class="code-keyword">true</span>, loveDraft: <span class="code-keyword">false</span>, compatClear: <span class="code-keyword">true</span> };</span>
+<span class="code-line">  <span class="code-keyword">return</span> {</span>
+<span class="code-line">    autoStart: settingsRow.autoStartService === 1,</span>
+<span class="code-line">    loveDraft: settingsRow.autoDraftCloseOnInLove === 1,</span>
+<span class="code-line">    compatClear: settingsRow.compatClearDealOwnership === 1,</span>
+<span class="code-line">  };</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">白话</span>
+            <div class="translation-lines">
+              <p class="tl">读某个租户的开关。</p>
+              <p class="tl">去设置表找这一行。</p>
+              <p class="tl">条件是租户编号相同，只要一行。</p>
+              <p class="tl">查询结束。</p>
+              <p class="tl">没有配置行：自动开启开着，恋爱不自动起草关单，开启时清理成交归属开着。</p>
+              <p class="tl">有配置就按表里的 0 和 1 翻译成是否。</p>
+              <p class="tl">1 才是自动开启。</p>
+              <p class="tl">1 才是恋爱时起草关单。起草了也不自动审核。</p>
+              <p class="tl">1 才在开启时停用销售 / 邀约归属，避免和在服归属并存。</p>
+              <p class="tl">交回三个开关。</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">开关是行为，不是文案</strong>
+            <p>跟 AI 说「关掉自动开启」时，指的是 <code>auto_start_service</code>。人仍调用同一次 <code>openService</code>，只是系统不再自己开。不要让它新写一套开启函数。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">这人为什么还在例外里</h2>
+        <div class="quiz-container" id="quiz-module4">
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="钱和合同齐了还不够。计划开始日晚于演示日，缺口就是「计划开始日」，实例停在待启用。"
+               data-explanation-wrong="四张牌要同时在。付清只是其中一张。">
+            <div class="scenario-block">
+              <div class="scenario-context">
+                <span class="scenario-label">情景</span>
+                <p>订单已付清，合同已通过，红娘也指定了。计划开始日是 2026-10-15，演示日是 2026-09-30。首页例外会怎么写？</p>
+              </div>
+            </div>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>不该出现。四项里钱和合同才是硬条件，日期只是展示</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>写成「确认开启」，因为系统不敢自动开</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>写成计划开始日还没到。人停在待启用</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="默认会清理。关掉 compat_clear_deal_ownership 之后两边可以同时有效，listDualOwnership 把这种人标出来。"
+               data-explanation-wrong="兼容清理默认是开的。开启成功时，销售和邀约那条有效归属会被停用。">
+            <h3 class="quiz-question">开启成功后，这位会员成交时留下的销售归属通常会怎样？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>默认被停用，避免销售归属和服务归属一起有效</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>自动变成服务库里的当前红娘</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>写进 ServiceStarted 之后立刻删除订单</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="门店没有红娘时，会落到店长或总监，并在例外里标成高优。三个角色都没有，结果才是缺服务人，服务不会开。"
+               data-explanation-wrong="自动指定有顺序。不是一没有红娘就放弃。">
+            <h3 class="quiz-question">这家店没有红娘，但有店长。自动指定会怎样？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>直接失败，首页写缺服务人</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>先落到店长名下，并在例外里提示要换成红娘</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>跳过服务人这道门，系统照样开启</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module4')">对一下答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module4')">再试一次</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>

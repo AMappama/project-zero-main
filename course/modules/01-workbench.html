@@ -1,0 +1,219 @@
+<section class="module" id="module-1" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">01</span>
+      <h1 class="module-title">点开工作台的那一秒</h1>
+      <p class="module-subtitle">成交之后，红娘看到的不是订单系统，是一本履约账。</p>
+    </header>
+
+    <div class="module-body">
+      <section class="screen animate-in">
+        <h2 class="screen-heading">你打开的是服务跟进，不是成交台</h2>
+        <p>想象你用浏览器打开 <span class="term" data-definition="浏览器地址栏里的网址。这个项目故意不用 3000、5173、8080 这些常见端口，避免和别的本地程序抢地址。跟 AI 说改端口时，直接说改 PORT。">http://127.0.0.1:47291</span>。先登录，再看到左侧五栏：服务跟进、服务库、约会、审核列表、过期 VIP。</p>
+        <p>这个包只负责成交之后。一笔订单只留一条<span class="term" data-definition="履约的主记录。开始日、结束日、四类次数的总量和已用都写在这一行上。一笔订单只能有一条。跟 AI 说：改服务实例，不要新建服务期表。">服务实例</span>：什么时候开始、什么时候结束、活动 / 恋爱指导 / 一对一 / 形象各有多少次。这一期已用从 0 开始，还不扣次数。</p>
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">林</div>
+            <h4 class="pattern-title">林晓 · 只有红娘</h4>
+            <p class="pattern-desc">看得到待判断和例外，能确认推荐、约会、发起申请。审核那一栏对她是空的，左侧也不出现「审核列表」。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">苏</div>
+            <h4 class="pattern-title">苏衡 · 红娘加审核人</h4>
+            <p class="pattern-desc">同一次登录两边都看得到。她能通过或驳回。审核人不是单独账号，是加在已有红娘<span class="term" data-definition="这个账号被允许做的那一类事。这里只有两种：红娘、审核人。跟 AI 说：用权限裁剪名单，不要做两套页面。">权限</span>上的。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">日</div>
+            <h4 class="pattern-title">演示日锁在 2026-09-30</h4>
+            <p class="pattern-desc">每次启动会清空库再铺样本。你看到的「今天」不是电脑日期，是种子数据里写死的工作日。</p>
+          </div>
+        </div>
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">跟 AI 说话时先点名这块地盘</strong>
+            <p>要加功能时说「这是履约账，不是成交域」。销售和邀约的归属写在成交投影上，不要让 AI 把他们塞进服务库。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">登录像领一张腕带，账本还在柜子里</h2>
+        <p>场馆入口发腕带，腕带只证明「你已经进来了」。柜子里的档案才是谁欠谁什么。中间的<span class="term" data-definition="浏览器和数据库之间的那一层，地址以 /api/ 开头。它检查是谁在请求，再决定读账还是写账。跟 AI 说：新动作加在 src/http.ts 的接口里，不要让页面直接连数据库。">接口</span>把腕带号写进 <span class="term" data-definition="一种很快的临时记事本，数据放在内存里。这个项目用它只记登录会话，默认地址 redis://127.0.0.1:6379。跟 AI 说：会话放 Redis，别写进业务表。">Redis</span>，档案留在 <span class="term" data-definition="一种把数据稳稳存在磁盘上的数据库。这个项目用 MySQL 协议（可以是 MySQL 或 MariaDB）存会员、订单、服务实例。跟 AI 说：业务事实写 MySQL。">MySQL</span>。</p>
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-1","label":"林晓在登录页点下自己的名字"},
+          {"highlight":"flow-actor-1","label":"浏览器把账号编号发给接口","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-2","label":"接口在 Redis 里写下腕带编号，有效期 7 天","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-2","label":"浏览器收下只给服务器看的 session 饼干"},
+          {"highlight":"flow-actor-1","label":"接着去要工作台。接口按权限裁剪三栏名单","packet":true,"from":"actor-2","to":"actor-1"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-1">
+              <div class="flow-actor-icon">览</div>
+              <span>浏览器</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-2">
+              <div class="flow-actor-icon">口</div>
+              <span>接口</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-3">
+              <div class="flow-actor-icon">腕</div>
+              <span>Redis</span>
+            </div>
+          </div>
+          <div class="flow-packet" id="flow-packet"></div>
+          <div class="flow-step-label" id="flow-label">点「下一步」看登录怎么走</div>
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">下一步</button>
+            <button class="btn flow-reset-btn">重看</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">腕带上没有姓名，只有一串随机号</h2>
+        <p>登录成功后，浏览器拿到的是一枚 <span class="term" data-definition="浏览器替你带在请求里的小纸条。这里叫 session，并且标了 HttpOnly，网页里的脚本读不到它，用来降低被偷走登录态的风险。">Cookie</span>。真正的账号编号放在 Redis 里。退出时删掉这条记录，腕带立刻作废。</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">代码</span>
+            <pre><code><span class="code-line"><span class="code-keyword">export async function</span> <span class="code-function">signIn</span>(accountId: number) {</span>
+<span class="code-line">  <span class="code-keyword">const</span> account = ACCOUNTS.<span class="code-function">find</span>((item) =&gt; item.id === accountId);</span>
+<span class="code-line">  <span class="code-keyword">if</span> (!account) <span class="code-keyword">return</span> <span class="code-keyword">null</span>;</span>
+<span class="code-line">  <span class="code-keyword">const</span> token = <span class="code-function">randomBytes</span>(18).<span class="code-function">toString</span>(<span class="code-string">"hex"</span>);</span>
+<span class="code-line">  <span class="code-keyword">const</span> client = <span class="code-function">initRedis</span>();</span>
+<span class="code-line">  <span class="code-keyword">await</span> client.<span class="code-function">set</span>(<span class="code-function">sessionKey</span>(token), String(account.id), <span class="code-string">"EX"</span>, SESSION_TTL_SECONDS);</span>
+<span class="code-line">  <span class="code-keyword">return</span> { account, token };</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">白话</span>
+            <div class="translation-lines">
+              <p class="tl">登录函数。传入的是页面上点的那个账号编号。</p>
+              <p class="tl">在写死的两个账号里找。林晓是 1，苏衡是 2。</p>
+              <p class="tl">找不到就当没登录成功。</p>
+              <p class="tl">随机生成一串腕带号，不把姓名写进饼干。</p>
+              <p class="tl">连上 Redis。</p>
+              <p class="tl">把「腕带号 → 账号编号」存起来，并设过期时间。默认 7 天。</p>
+              <p class="tl">把账号信息和腕带号交还给调用方，再由接口写成 Cookie。</p>
+              <p class="tl">函数结束。</p>
+            </div>
+          </div>
+        </div>
+        <p>文件在 <code>src/accounts.ts</code>。跟 AI 说「加一个账号」时，要同时说：名单在 <code>ACCOUNTS</code>，会话仍走 Redis，不要新开一张用户表。</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">同一份名单，按权限裁成两个人看到的样子</h2>
+        <p>服务跟进有三栏：待判断、例外、审核。后端先把三栏都算好，再按登录人剪掉没权限的那栏。所以林晓不是「审核坏了」，是审核被故意收成空列表。</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">代码</span>
+            <pre><code><span class="code-line"><span class="code-keyword">function</span> <span class="code-function">homeForAccount</span>&lt;T <span class="code-keyword">extends</span> { judgement: unknown[]; exceptions: unknown[]; reviews: unknown[] }&gt;(home: T, account: Account | <span class="code-keyword">null</span>) {</span>
+<span class="code-line">  <span class="code-keyword">if</span> (!account) <span class="code-keyword">return</span> home;</span>
+<span class="code-line">  <span class="code-keyword">return</span> {</span>
+<span class="code-line">    ...home,</span>
+<span class="code-line">    judgement: <span class="code-function">hasPermission</span>(account, <span class="code-string">"红娘"</span>) ? home.judgement : [],</span>
+<span class="code-line">    exceptions: <span class="code-function">hasPermission</span>(account, <span class="code-string">"红娘"</span>) ? home.exceptions : [],</span>
+<span class="code-line">    reviews: <span class="code-function">hasPermission</span>(account, <span class="code-string">"审核人"</span>) ? home.reviews : [],</span>
+<span class="code-line">  };</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">白话</span>
+            <div class="translation-lines">
+              <p class="tl">按登录人裁首页。尖括号里那长串只是在说：首页一定有这三栏。</p>
+              <p class="tl">没登录就原样返回。</p>
+              <p class="tl">开始组装返回值。</p>
+              <p class="tl">日期、备案这些别的字段原样保留。</p>
+              <p class="tl">不是红娘，待判断变空数组。</p>
+              <p class="tl">不是红娘，例外也变空。</p>
+              <p class="tl">不是审核人，审核变空。林晓就是这样。</p>
+              <p class="tl">交回裁好的首页。</p>
+              <p class="tl">函数结束。原文在 <code>src/http.ts</code> 的 <code>homeForAccount</code>。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">换成你会怎么判断</h2>
+        <div class="quiz-container" id="quiz-module1">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="审核栏是按权限剪掉的，不是没查到数据。换苏衡登录，同一天的审核就会出现。"
+               data-explanation-wrong="先分清「没数据」和「没权限」。林晓的审核列表被收成空数组，库里的申请还在。">
+            <div class="scenario-block">
+              <div class="scenario-context">
+                <span class="scenario-label">情景</span>
+                <p>林晓说：「我明明知道有一笔关单待审，首页审核栏是空的。」你让 AI 去修之前，第一句该怎么说？</p>
+              </div>
+            </div>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>让 AI 把审核查询再写一遍，大概是数据库没查到</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>先确认她只有红娘权限。审核栏只给审核人，换苏衡看</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>让 AI 把审核数据存进 Redis，这样刷新就不会丢</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="腕带在 Redis，档案在 MySQL。清 Redis 只会把人踢下线，不会改服务实例。"
+               data-explanation-wrong="两套存储各管一件事。业务状态不在登录会话里。">
+            <h3 class="quiz-question">有人清掉了 Redis。会员的 VIP 身份会怎样？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>全部变回普通，因为登录信息没了</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>服务库被清空，要重新播种</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>身份还在 MySQL 里。大家只是要重新登录</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="工作日来自种子常量 WORKBENCH.today，不是操作系统的今天。要换演示日，改种子并接受启动时会重置库。"
+               data-explanation-wrong="页面顶上的日期是工作台读出来的演示日，不是浏览器本地时钟。">
+            <h3 class="quiz-question">顶栏写着 2026年9月30日，可你的电脑已经是别的日子。这是故障吗？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>不是。演示日写死在种子里，启动时按这一天铺样本</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>是。让 AI 改成 new Date()，所有到期判断就会变对</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>是时区问题。把 Redis 改成存日期就好了</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module1')">对一下答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module1')">再试一次</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>

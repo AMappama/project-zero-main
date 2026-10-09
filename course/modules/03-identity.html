@@ -1,0 +1,243 @@
+<section class="module" id="module-3" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">03</span>
+      <h1 class="module-title">身份是分诊，不是手改标签</h1>
+      <p class="module-subtitle">会员类型按固定顺序算。命中就停。没有人可以在页面上改它。</p>
+    </header>
+
+    <div class="module-body">
+      <section class="screen animate-in">
+        <h2 class="screen-heading">急诊分诊：先看最急的那张牌</h2>
+        <p>医院分诊不会把「擦伤」和「正在抢救」平均一下写成「中等」。这里也一样。一个人可以有好几本护照，<span class="term" data-definition="会员对外显示的类型：普通、VIP、暂停、待开启、过期 VIP、退费。它是算出来再缓存的，不是工作人员手填的字段。">身份</span>只取最优先的那一本。</p>
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="flow-step-num">1</div>
+            <p>任一启用中<br>就是 VIP</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">2</div>
+            <p>否则任一暂停<br>就是暂停</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">3</div>
+            <p>否则任一待启用<br>就是待开启</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">4</div>
+            <p>否则看最新一笔<br>完成或退费</p>
+          </div>
+        </div>
+        <p>没有实例，就是普通。暂停高于另一笔还在待启用的订单。最新一笔看的是订单时间，不是你最后点的那一下。</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">几本护照在争胸牌</h2>
+        <p>点「下一条」，看它们怎么吵。最后留下的那句，就是会员类型。</p>
+        <div class="chat-window" id="chat-identity">
+          <div class="chat-messages">
+            <div class="chat-message" data-msg="0" data-sender="active" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">启</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">启用中的那本</span>
+                <p>我还在服务。胸牌给我，写 VIP。你们别插队。</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="paused" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-4)">停</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-4)">暂停的那本</span>
+                <p>要是没有启用中的，轮到我。哪怕旁边还有一本没开的，我也压过它。</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="pending" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">待</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">待启用的那本</span>
+                <p>前两本都没有的话，我让人显示「待开启」。合同或服务人还没齐，也算我。</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="3" data-sender="latest" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-5)">新</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-5)">订单时间最新的那本</span>
+                <p>只剩完成和失效时才看我。完成是过期 VIP，失效是退费。更早的那本别出声。</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="4" data-sender="cache" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">缓</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">身份缓存</span>
+                <p>我只是抄写员。改实例的那次事务结束时，把结果写回 members.member_type。页面上没有手改入口。</p>
+              </div>
+            </div>
+          </div>
+          <div class="chat-typing" id="chat-typing" style="display:none">
+            <div class="chat-avatar" id="chat-identity-typing-avatar">?</div>
+            <div class="chat-typing-dots">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </div>
+          </div>
+          <div class="chat-controls">
+            <button class="btn chat-next-btn">下一条</button>
+            <button class="btn chat-all-btn">全部播放</button>
+            <button class="btn chat-reset-btn">重看</button>
+            <span class="chat-progress"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">代码就是这套分诊顺序</h2>
+        <p>命中即停。前面的 <code>if</code> 成立，后面的句子不会再看。</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">代码</span>
+            <pre><code><span class="code-line"><span class="code-keyword">if</span> (rows.length === 0) <span class="code-keyword">return</span> <span class="code-string">"普通"</span>;</span>
+<span class="code-line"><span class="code-keyword">if</span> (rows.some((row) =&gt; row.status === <span class="code-string">"启用中"</span>)) <span class="code-keyword">return</span> <span class="code-string">"VIP"</span>;</span>
+<span class="code-line"><span class="code-keyword">if</span> (rows.some((row) =&gt; row.status === <span class="code-string">"暂停"</span>)) <span class="code-keyword">return</span> <span class="code-string">"暂停"</span>;</span>
+<span class="code-line"><span class="code-keyword">if</span> (rows.some((row) =&gt; row.status === <span class="code-string">"待启用"</span>)) <span class="code-keyword">return</span> <span class="code-string">"待开启"</span>;</span>
+<span class="code-line"><span class="code-keyword">const</span> latest = rows.reduce((best, row) =&gt; (row.orderTime &gt; best.orderTime ? row : best));</span>
+<span class="code-line"><span class="code-keyword">if</span> (latest.status === <span class="code-string">"完成"</span>) <span class="code-keyword">return</span> <span class="code-string">"过期 VIP"</span>;</span>
+<span class="code-line"><span class="code-keyword">if</span> (latest.status === <span class="code-string">"失效"</span>) <span class="code-keyword">return</span> <span class="code-string">"退费"</span>;</span>
+<span class="code-line"><span class="code-keyword">return</span> <span class="code-string">"普通"</span>;</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">白话</span>
+            <div class="translation-lines">
+              <p class="tl">一本护照都没有，普通人。</p>
+              <p class="tl">只要有一本还在服务，就是 VIP。别的本子忽略。</p>
+              <p class="tl">没有在服务的，有暂停就是暂停。它压过待启用。</p>
+              <p class="tl">再没有，有待启用就是待开启。</p>
+              <p class="tl">剩下的本子里，挑订单时间最晚的那本。</p>
+              <p class="tl">最晚那本已完成：过期 VIP。</p>
+              <p class="tl">最晚那本已失效：退费。失效不是完成。</p>
+              <p class="tl">其他情况仍算普通。这段在 <code>memberIdentityTx</code>。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">抄写员被一把锁看着</h2>
+        <p><code>members.member_type</code> 是<span class="term" data-definition="把算好的结果存下来，下次读取快一点。这里的缓存不允许人手改。只有改服务实例的那次事务，才能短暂打开写锁，把新身份写回去。">缓存</span>。数据库<span class="term" data-definition="挂在表上的自动检查。某列要被修改时，数据库自己先跑这段逻辑，不合规则就拒绝写入。这里用来拦住手改身份。跟 AI 说：有触发器，不要绕过它直接改列。">触发器</span>规定：这列要变，必须先把 <code>write_guard</code> 拨到允许，写完再拨回去。</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">代码</span>
+            <pre><code><span class="code-line"><span class="code-keyword">const</span> identity = <span class="code-keyword">await</span> <span class="code-function">memberIdentityTx</span>(tx, memberId);</span>
+<span class="code-line"><span class="code-keyword">await</span> tx.update(writeGuard).set({ allowIdentityCache: 1 }).where(<span class="code-function">eq</span>(writeGuard.id, 1));</span>
+<span class="code-line"><span class="code-keyword">await</span> tx.update(members).set({ memberType: identity }).where(<span class="code-function">eq</span>(members.id, memberId));</span>
+<span class="code-line"><span class="code-keyword">await</span> tx.update(writeGuard).set({ allowIdentityCache: 0 }).where(<span class="code-function">eq</span>(writeGuard.id, 1));</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">白话</span>
+            <div class="translation-lines">
+              <p class="tl">先把分诊结果算出来。</p>
+              <p class="tl">把唯一一把锁拨到「允许抄写」。锁的编号永远是 1。</p>
+              <p class="tl">这时才能改会员身上的类型缓存。</p>
+              <p class="tl">立刻把锁拨回去。函数叫 <code>refreshIdentityCache</code>。</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-warning">
+          <div class="callout-icon">⚠</div>
+          <div class="callout-content">
+            <strong class="callout-title">直接改 member_type 会被数据库吼回来</strong>
+            <p>触发器的原文是「身份缓存只能由实例事务回写」。AI 若写一条裸的 UPDATE，库会拒绝。跟它说：改实例，让 <code>refreshIdentityCache</code> 去抄。</p>
+          </div>
+        </div>
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">服务库、过期 VIP、处理中都是查询</strong>
+            <p>它们不是另存的一份名单。条件变了，下次查询结果就变。所以「名单怎么还在」通常是条件没变，不是缓存没刷新。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">给这个人挂哪块胸牌</h2>
+        <div class="quiz-container" id="quiz-module3">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="启用中优先于一切。旧订单已经完成，也不影响当前这本正在服务的护照。"
+               data-explanation-wrong="从顺序顶端看起。有启用中，后面的完成、暂停都不用看。">
+            <div class="scenario-block">
+              <div class="scenario-context">
+                <span class="scenario-label">情景</span>
+                <p>一位会员有两笔订单。旧的已经关单完成，新的刚刚开启，状态是启用中。胸牌上该写什么？</p>
+              </div>
+            </div>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>过期 VIP，因为有一本已经完成</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>VIP。任一启用中就停，旧的完成不算数</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>看订单时间最新的那本。最新如果是旧单，就是过期 VIP</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="暂停高于另一笔待启用。待开启只有在没有任何暂停、也没有任何启用中时才出现。"
+               data-explanation-wrong="待启用不是最高优先级。先看有没有暂停。">
+            <h3 class="quiz-question">一本暂停，另一本还在待启用，没有启用中。身份是？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>暂停</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>待开启</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>两个都显示，页面上并列</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="退款完成把实例改成失效，并停用这笔订单上的服务归属。失效不是完成，所以不是过期 VIP。"
+               data-explanation-wrong="完成和失效是两种结局。退费走失效。">
+            <h3 class="quiz-question">退款完成了，实例被改成失效。会员类型更接近哪一个？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>过期 VIP，因为服务结束了</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>普通，因为钱退了就当没买过</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>退费。失效不是完成</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module3')">对一下答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module3')">再试一次</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>

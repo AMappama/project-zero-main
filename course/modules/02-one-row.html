@@ -1,0 +1,207 @@
+<section class="module" id="module-2" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">02</span>
+      <h1 class="module-title">一笔订单，一本护照</h1>
+      <p class="module-subtitle">服务期、次数、暂停历史都不另开抽屉。关键事实盖在同一本上。</p>
+    </header>
+
+    <div class="module-body">
+      <section class="screen animate-in">
+        <h2 class="screen-heading">护照只有一本，贴纸不能散落</h2>
+        <p>出国你不会把签证、入境章、行程单分装进五个没编号的袋子。牵线宝也拒绝那些袋子：没有单独的服务期表、次数表、暂停历史表、过期池表，也没有诚意库和课次。</p>
+        <p>一笔订单对应一行<span class="term" data-definition="履约的主记录。状态、计划开始日、实际起止、总结束日，以及四类次数的总量和已用，都在这一行上。跟 AI 说：不要为次数再建一张表。">服务实例</span>。改期、暂停、赠送，都是改这一行，或在申请单上记下改前改后。</p>
+        <div class="file-tree">
+          <div class="ft-folder">
+            <div class="ft-name">履约柜</div>
+            <div class="ft-children">
+              <div class="ft-file"><span class="ft-name">order_facts</span><span class="ft-desc">成交域递过来的事实：付没付清、合同审没审过、时长、四类次数、退款</span></div>
+              <div class="ft-file"><span class="ft-name">service_instances</span><span class="ft-desc">护照本身。一个订单号只能有一行</span></div>
+              <div class="ft-file"><span class="ft-name">service_ownerships</span><span class="ft-desc">现在谁在服务这位会员。一个人同时只有一条有效归属</span></div>
+              <div class="ft-file"><span class="ft-name">applications</span><span class="ft-desc">关单、赠送、暂停的申请。审核走完才改护照</span></div>
+              <div class="ft-file"><span class="ft-name">tasks</span><span class="ft-desc">还没盖章的草稿：推荐草稿、关单建议</span></div>
+              <div class="ft-file"><span class="ft-name">recommendations</span><span class="ft-desc">已经确认的推荐事实。草稿确认之后才写到这里</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">订单号是护照的防伪编号</h2>
+        <p><span class="term" data-definition="数据库里保证某一列的值不能重复的规则。这里 order_id 唯一，所以同一笔订单插第二行服务实例会被拒绝。跟 AI 说：一订单一实例，靠唯一约束守住，不要靠人记得。">唯一约束</span>写在订单号上。程序忘了检查也插不进第二本护照。</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">代码</span>
+            <pre><code><span class="code-line"><span class="code-keyword">export const</span> serviceInstances = <span class="code-function">mysqlTable</span>(<span class="code-string">"service_instances"</span>, {</span>
+<span class="code-line">  id: <span class="code-function">int</span>(<span class="code-string">"id"</span>).primaryKey().autoincrement(),</span>
+<span class="code-line">  tenantId: <span class="code-function">int</span>(<span class="code-string">"tenant_id"</span>).notNull(),</span>
+<span class="code-line">  shopId: <span class="code-function">int</span>(<span class="code-string">"shop_id"</span>).notNull(),</span>
+<span class="code-line">  memberId: <span class="code-function">int</span>(<span class="code-string">"member_id"</span>).notNull(),</span>
+<span class="code-line">  orderId: <span class="code-function">int</span>(<span class="code-string">"order_id"</span>).notNull().unique(),</span>
+<span class="code-line">  status: <span class="code-function">varchar</span>(<span class="code-string">"status"</span>, { length: 16 }).notNull(),</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">白话</span>
+            <div class="translation-lines">
+              <p class="tl">这是服务实例这张表的列定义，文件在 <code>src/schema.ts</code>。</p>
+              <p class="tl">每一行有自己的编号，数据库自动加一。</p>
+              <p class="tl">属于哪个租户。一家公司一套账，不能串。</p>
+              <p class="tl">属于哪家门店。</p>
+              <p class="tl">这位会员。一个人可以有多笔订单，所以会员号可以重复。</p>
+              <p class="tl">订单号不能空，也不能和第二行重复。一笔订单只有一本护照。</p>
+              <p class="tl">状态：待启用、启用中、暂停、失效、完成。后面几列是日期和四类次数。</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-info">
+          <div class="callout-icon">✦</div>
+          <div class="callout-content">
+            <strong class="callout-title">建表的「法律条文」在另一份文件</strong>
+            <p><code>schema.ts</code> 是给程序查询用的列名。<code>schema.sql.ts</code> 里才有检查规则：成熟度只允许「新升级、暂停、已关单」，中间档留空。跟 AI 改表时，两处都要改。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">把纸条放回正确的夹子</h2>
+        <p>拖到对应的格子。放错了，对答案时格子会变色。</p>
+        <div class="dnd-container" id="dnd-ledger">
+          <div class="dnd-chips">
+            <div class="dnd-chip" draggable="true" data-answer="facts">订单事实</div>
+            <div class="dnd-chip" draggable="true" data-answer="instance">服务实例</div>
+            <div class="dnd-chip" draggable="true" data-answer="task">任务草稿</div>
+            <div class="dnd-chip" draggable="true" data-answer="deal">成交归属</div>
+          </div>
+          <div class="dnd-zones">
+            <div class="dnd-zone" data-correct="facts">
+              <p class="dnd-zone-label">合同是否审核通过、是否付清、四类次数总量</p>
+              <div class="dnd-zone-target">放这里</div>
+            </div>
+            <div class="dnd-zone" data-correct="instance">
+              <p class="dnd-zone-label">启用中还是暂停、结束日、已用次数</p>
+              <div class="dnd-zone-target">放这里</div>
+            </div>
+            <div class="dnd-zone" data-correct="task">
+              <p class="dnd-zone-label">「同在服务库，尚未推荐」这种还没确认的话</p>
+              <div class="dnd-zone-target">放这里</div>
+            </div>
+            <div class="dnd-zone" data-correct="deal">
+              <p class="dnd-zone-label">关单之后销售或邀约把人领走，人离开过期 VIP，也不进服务库</p>
+              <div class="dnd-zone-target">放这里</div>
+            </div>
+          </div>
+          <button class="btn" onclick="checkDnD('dnd-ledger')">对一下</button>
+          <button class="btn" onclick="resetDnD('dnd-ledger')">重来</button>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">页面是柜子的窗口，不是第二本账</h2>
+        <p>浏览器里的 <span class="term" data-definition="一种用来画页面的前端库。这个项目的工作台用它。它只负责显示和点击，身份和能否开启的规则不写在页面里。跟 AI 说：规则放服务端，页面只调用接口。">React</span> 页面只负责把名单画出来、把按钮点下去。身份、能不能开启、过期 VIP 算不算，都在服务端的<span class="term" data-definition="一次要么全部成功、要么全部取消的数据库写入。开启服务时，改实例、写成熟度、写出站事件必须在同一次事务里，避免改到一半。跟 AI 说：一次动作一个事务。">事务</span>里算完。</p>
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">页</div>
+            <h4 class="pattern-title">web/src</h4>
+            <p class="pattern-desc">工作台皮肤。路由很朴素：看网址路径决定画哪一页，没有另开一个前端服务器。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">口</div>
+            <h4 class="pattern-title">src/http.ts</h4>
+            <p class="pattern-desc">门卫。检查登录、权限，再把动作交给履约账。没有权限直接 403。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-5)">
+            <div class="pattern-icon" style="background: var(--color-actor-5)">账</div>
+            <h4 class="pattern-title">src/fulfillment.ts</h4>
+            <p class="pattern-desc">规则都在这里。想改「恋爱要不要自动起草关单」，来这一层，不要在按钮上写死。</p>
+          </div>
+        </div>
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">一个进程，两扇门</strong>
+            <p><code>src/server.ts</code> 同时端起接口和工作台。以 <code>/api/</code> 开头的走账本，其余交给页面。跟 AI 说「不要再起一个 5173 的前端」，除非你真的想拆开。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">如果你来加一张表</h2>
+        <div class="quiz-container" id="quiz-module2">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="次数的总量和已用已经在服务实例这一行上。赠送通过时改总量，已用不动。新表会把「一本护照」拆碎。"
+               data-explanation-wrong="先问这个数字是不是已经在实例行上。这个项目刻意不设次数表。">
+            <div class="scenario-block">
+              <div class="scenario-context">
+                <span class="scenario-label">情景</span>
+                <p>产品说：「赠送一对一次数时，要能看到改前改后。」AI 提议新建一张 quota_history 表。你怎么拦？</p>
+              </div>
+            </div>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>同意。历史必须独立成表，不然审计做不了</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>改前改后记在赠送申请上。实例只留当前总量，已用不动</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>写进 Redis，刷新页面时再同步回 MySQL</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="服务库看的是服务归属，而且状态得是待启用、启用中或暂停。销售领取写在成交域，人不会因此出现在服务库。"
+               data-explanation-wrong="先分清两本账：服务归属进服务库，成交归属不进。">
+            <h3 class="quiz-question">关单后，销售把这位过期会员领走了。红娘的服务库里会出现他吗？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>不会。销售和邀约领取不进服务库，人只是离开过期 VIP</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>会。谁领取，谁的服务库就多一个人</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>会短暂出现，等晚上的定时任务再挪走</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="会员可以有多笔订单，所以会员号可以重复。防的是同一订单插两行实例。"
+               data-explanation-wrong="唯一的是订单号，不是会员号。一个人续费会再有一本护照。">
+            <h3 class="quiz-question">同一位会员第二笔订单也要履约。数据库会拒绝吗？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>会。一个会员只能有一行服务实例</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>会。第二笔只能覆盖第一笔的结束日</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>不会。拒绝的是同一个订单号插第二行</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module2')">对一下答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module2')">再试一次</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>牵线宝 · 履约重建进度</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Noto+Serif+SC:wght@500;700&family=Sora:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ===========================================
+   THEME — Ink Ledger (custom)
+   Deep slate field, copper accent, ledger blocks
+   =========================================== */
+:root {
+  --stage-bg: #05080c;
+  --slide-bg: #101820;
+  --ink: #e8e2d6;
+  --mute: #9aa3ad;
+  --mute-2: #6d7782;
+  --copper: #e08a4a;
+  --copper-soft: rgba(224, 138, 74, 0.16);
+  --line: rgba(232, 226, 214, 0.18);
+  --line-strong: rgba(232, 226, 214, 0.32);
+  --panel: rgba(8, 12, 18, 0.48);
+  --panel-solid: #15202b;
+  --font-display: "Instrument Serif", "Noto Serif SC", serif;
+  --font-ui: "Sora", "IBM Plex Sans", sans-serif;
+  --font-body: "IBM Plex Sans", "Noto Serif SC", sans-serif;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-normal: 0.65s;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ===========================================
+   VIEWPORT BASE (mandatory fixed 16:9 stage)
+   =========================================== */
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--stage-bg, #000);
+}
+.deck-viewport {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--stage-bg, #000);
+}
+.deck-stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  transform-origin: 0 0;
+  background: var(--slide-bg, #fff);
+}
+.slide {
+  position: absolute;
+  inset: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  display: block;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  background: var(--slide-bg, #fff);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+.slide.active,
+.slide.visible {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 1;
+}
+@media print {
+  html, body { width: 1920px; height: auto; overflow: visible; background: #fff; }
+  .deck-viewport { position: static; overflow: visible; background: #fff; }
+  .deck-stage { position: static; width: auto; height: auto; transform: none !important; background: none; }
+  .slide {
+    position: relative;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    width: 1920px;
+    height: 1080px;
+    break-after: page;
+    page-break-after: always;
+  }
+  .slide:last-child { break-after: auto; page-break-after: auto; }
+  .deck-controls, .edit-hotzone, .edit-toggle { display: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.2s !important;
+  }
+}
+
+/* ===========================================
+   SHARED ATMOSPHERE + CHROME
+   =========================================== */
+.slide-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 900px 520px at 78% 12%, var(--copper-soft), transparent 60%),
+    linear-gradient(165deg, #15202b 0%, #101820 45%, #0b1218 100%);
+}
+.slide-pad {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  padding: 72px 110px 70px;
+  display: flex;
+  flex-direction: column;
+}
+.slide-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 22px;
+  margin-bottom: 36px;
+}
+.slide-head .eyebrow {
+  font-family: var(--font-ui);
+  font-size: 18px;
+  letter-spacing: 0.14em;
+  color: var(--copper);
+  font-weight: 500;
+}
+.slide-head h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 64px;
+  line-height: 1.1;
+  letter-spacing: 0;
+  margin-top: 10px;
+}
+.slide-head .folio {
+  font-family: var(--font-ui);
+  font-size: 20px;
+  color: var(--mute);
+  letter-spacing: 0.08em;
+}
+.slide-foot {
+  margin-top: auto;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-ui);
+  font-size: 18px;
+  color: var(--mute-2);
+  letter-spacing: 0.06em;
+}
+
+/* ===========================================
+   REVEAL ANIMATIONS
+   =========================================== */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity var(--duration-normal) var(--ease-out-expo),
+              transform var(--duration-normal) var(--ease-out-expo);
+}
+.slide.visible .reveal { opacity: 1; transform: translateY(0); }
+.d1 { transition-delay: 0.08s; }
+.d2 { transition-delay: 0.16s; }
+.d3 { transition-delay: 0.24s; }
+.d4 { transition-delay: 0.32s; }
+.d5 { transition-delay: 0.4s; }
+.d6 { transition-delay: 0.48s; }
+
+/* ===========================================
+   01 TITLE
+   =========================================== */
+.slide-title .slide-pad { padding: 92px 120px 80px; }
+.slide-title .top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.slide-title .mark {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-family: var(--font-ui);
+  font-weight: 500;
+  font-size: 24px;
+}
+.slide-title .dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--copper);
+  box-shadow: 0 0 0 6px rgba(224,138,74,0.18);
+}
+.slide-title .date {
+  font-family: var(--font-ui);
+  font-size: 22px;
+  color: var(--mute);
+  letter-spacing: 0.08em;
+}
+.slide-title .rule {
+  margin-top: 36px;
+  height: 1px;
+  background: var(--line);
+}
+.slide-title .brand {
+  margin-top: 88px;
+  font-family: var(--font-display);
+  font-size: 68px;
+  font-style: italic;
+  color: var(--copper);
+}
+.slide-title h1 {
+  margin-top: 12px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 124px;
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+.slide-title h1 em {
+  font-style: italic;
+  color: var(--copper);
+}
+.slide-title .row {
+  margin-top: 44px;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 48px;
+  align-items: end;
+}
+.slide-title .blurb {
+  font-size: 28px;
+  line-height: 1.55;
+  color: var(--mute);
+  max-width: 760px;
+}
+.ledger {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 26px 30px;
+}
+.ledger .cap {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  color: var(--copper);
+  margin-bottom: 14px;
+}
+.ledger .line {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 11px 0;
+  border-top: 1px solid var(--line);
+  font-size: 22px;
+}
+.ledger .line span:last-child {
+  font-family: var(--font-ui);
+  color: var(--mute);
+  font-size: 18px;
+  white-space: nowrap;
+}
+
+/* ===========================================
+   02 AGENDA
+   =========================================== */
+.agenda-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+  flex: 1;
+  min-height: 0;
+}
+.agenda-card {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 32px 30px 28px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.agenda-card .num {
+  font-family: var(--font-ui);
+  font-size: 18px;
+  letter-spacing: 0.12em;
+  color: var(--copper);
+}
+.agenda-card h3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 42px;
+  margin-top: 18px;
+  letter-spacing: 0;
+  line-height: 1.15;
+}
+.agenda-card p {
+  margin-top: 18px;
+  font-size: 24px;
+  line-height: 1.5;
+  color: var(--mute);
+}
+.agenda-card .tag {
+  margin-top: auto;
+  padding-top: 22px;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  color: var(--mute-2);
+  border-top: 1px solid var(--line);
+}
+
+/* ===========================================
+   03 STATEMENT
+   =========================================== */
+.statement-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 40px;
+}
+.statement-body blockquote {
+  font-family: var(--font-display);
+  font-size: 72px;
+  line-height: 1.22;
+  letter-spacing: 0;
+  max-width: 1520px;
+}
+.statement-body blockquote em {
+  font-style: italic;
+  color: var(--copper);
+}
+.pillars {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+.pillar {
+  border-top: 2px solid var(--copper);
+  padding-top: 22px;
+}
+.pillar h4 {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 400;
+  margin-bottom: 12px;
+}
+.pillar p {
+  font-size: 24px;
+  line-height: 1.5;
+  color: var(--mute);
+}
+
+/* ===========================================
+   04 WORKBENCH TRIAD
+   =========================================== */
+.triad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+  flex: 1;
+  min-height: 0;
+}
+.triad-card {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 30px 28px;
+  display: flex;
+  flex-direction: column;
+}
+.triad-card.hot {
+  border-color: rgba(224,138,74,0.55);
+  background: linear-gradient(180deg, rgba(224,138,74,0.12), var(--panel));
+}
+.triad-card .who {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  color: var(--copper);
+}
+.triad-card h3 {
+  font-family: var(--font-display);
+  font-size: 48px;
+  font-weight: 400;
+  margin: 14px 0 18px;
+  letter-spacing: 0;
+}
+.triad-card ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.triad-card li {
+  font-size: 23px;
+  line-height: 1.4;
+  color: var(--mute);
+  padding-left: 18px;
+  border-left: 2px solid var(--line-strong);
+}
+.note-bar {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 22px;
+}
+.note-bar .box {
+  border: 1px solid var(--line);
+  padding: 18px 22px;
+  font-size: 22px;
+  line-height: 1.45;
+  color: var(--mute);
+}
+.note-bar .box strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* ===========================================
+   05 WALKTHROUGH TABLE
+   =========================================== */
+.wt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 21px;
+  line-height: 1.35;
+}
+.wt-table th {
+  text-align: left;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  color: var(--copper);
+  font-weight: 500;
+  padding: 0 16px 14px 0;
+  border-bottom: 1px solid var(--line-strong);
+}
+.wt-table td {
+  padding: 14px 18px 14px 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  color: var(--mute);
+}
+.wt-table td:first-child {
+  color: var(--ink);
+  font-weight: 500;
+  width: 18%;
+}
+.wt-table td:nth-child(2) { width: 14%; color: var(--copper); font-family: var(--font-ui); font-size: 18px; }
+.wt-table td:nth-child(3) { width: 34%; }
+.wt-table td:nth-child(4) { width: 34%; }
+.wt-note {
+  margin-top: 18px;
+  font-size: 20px;
+  color: var(--mute-2);
+  line-height: 1.45;
+}
+
+/* ===========================================
+   06 GLOSSARY
+   =========================================== */
+.gloss-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 28px;
+  flex: 1;
+  min-height: 0;
+  align-content: start;
+}
+.gloss-item {
+  border-left: 2px solid var(--line-strong);
+  padding: 8px 0 8px 18px;
+}
+.gloss-item h4 {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: 0;
+  margin-bottom: 6px;
+}
+.gloss-item p {
+  font-size: 20px;
+  line-height: 1.4;
+  color: var(--mute);
+}
+.gloss-banner {
+  margin-top: 18px;
+  border: 1px solid rgba(224,138,74,0.4);
+  background: rgba(224,138,74,0.08);
+  padding: 16px 22px;
+  font-size: 22px;
+  color: var(--ink);
+}
+
+/* ===========================================
+   07 STATE MACHINES
+   =========================================== */
+.sm-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  flex: 1;
+  min-height: 0;
+}
+.sm-card {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 24px 26px;
+  min-height: 0;
+}
+.sm-card h3 {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 400;
+  margin-bottom: 8px;
+}
+.sm-card .flow {
+  font-family: var(--font-ui);
+  font-size: 17px;
+  color: var(--copper);
+  letter-spacing: 0.02em;
+  margin-bottom: 12px;
+  line-height: 1.45;
+}
+.sm-card p {
+  font-size: 20px;
+  line-height: 1.45;
+  color: var(--mute);
+}
+.sm-ban {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 18px;
+}
+.sm-ban .box {
+  border-top: 2px solid var(--copper);
+  padding-top: 14px;
+  font-size: 20px;
+  line-height: 1.45;
+  color: var(--mute);
+}
+.sm-ban strong { color: var(--ink); font-weight: 500; }
+
+/* ===========================================
+   08 COMPARE + CLOSE
+   =========================================== */
+.cmp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  flex: 1;
+  min-height: 0;
+}
+.cmp-col {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 26px 28px;
+  display: flex;
+  flex-direction: column;
+}
+.cmp-col h3 {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 400;
+  margin-bottom: 16px;
+}
+.cmp-col ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.cmp-col li {
+  font-size: 22px;
+  line-height: 1.4;
+  color: var(--mute);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.cmp-col li:last-child { border-bottom: none; padding-bottom: 0; }
+.cmp-col li strong { color: var(--ink); font-weight: 500; }
+.cmp-col.goal { border-color: rgba(224,138,74,0.45); }
+.cmp-col.goal h3 { color: var(--copper); }
+
+.close-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 36px;
+  align-items: center;
+}
+.close-body h2 {
+  font-family: var(--font-display);
+  font-size: 78px;
+  font-weight: 400;
+  line-height: 1.12;
+  letter-spacing: 0;
+}
+.close-body h2 em {
+  font-style: italic;
+  color: var(--copper);
+}
+.close-body .lede {
+  margin-top: 24px;
+  font-size: 26px;
+  line-height: 1.5;
+  color: var(--mute);
+  max-width: 760px;
+}
+.close-list {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 28px 30px;
+}
+.close-list .cap {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  color: var(--copper);
+  margin-bottom: 16px;
+}
+.close-list .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  font-size: 24px;
+}
+.close-list .row span:last-child {
+  color: var(--mute);
+  font-family: var(--font-ui);
+  font-size: 18px;
+}
+
+/* ===========================================
+   DECK CONTROLS + INLINE EDIT
+   =========================================== */
+.deck-controls {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: #cfc7ba;
+  background: rgba(8,12,18,0.82);
+  border: 1px solid rgba(232,226,214,0.18);
+  padding: 8px 14px;
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+}
+.deck-controls button {
+  appearance: none;
+  border: 1px solid rgba(232,226,214,0.22);
+  background: transparent;
+  color: inherit;
+  width: 34px;
+  height: 28px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.deck-controls button:hover { border-color: var(--copper); color: var(--copper); }
+.edit-hotzone {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 80px;
+  height: 80px;
+  z-index: 10000;
+  cursor: pointer;
+}
+.edit-toggle {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 10001;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  border: 1px solid rgba(232,226,214,0.25);
+  background: rgba(8,12,18,0.9);
+  color: #e8e2d6;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  cursor: pointer;
+}
+.edit-toggle.show,
+.edit-toggle.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+body.editing [contenteditable="true"] {
+  outline: 1px dashed rgba(224,138,74,0.55);
+  outline-offset: 4px;
+}
+</style>
+</head>
+<body>
+<div class="edit-hotzone" aria-hidden="true"></div>
+<button class="edit-toggle" id="editToggle" title="Edit mode (E)">Edit</button>
+
+<div class="deck-viewport">
+  <main class="deck-stage" id="deckStage">
+
+    <!-- === 01 TITLE === -->
+    <section class="slide slide-title active" data-label="封面">
+      <div class="slide-bg"></div>
+      <div class="slide-pad">
+        <div class="top reveal d1">
+          <div class="mark"><span class="dot"></span>牵线宝履约账本</div>
+          <div class="date">2026.10</div>
+        </div>
+        <div class="rule"></div>
+        <div class="brand reveal d2">Qianxianbao</div>
+        <h1 class="reveal d2">履约重建<br />进度汇报<em>。</em></h1>
+        <div class="row">
+          <p class="blurb reveal d3">红娘工作台已可按新账本走查：待判断、例外、审核分权；身份与服务库都是查出来的，不是人手改出来的。</p>
+          <div class="ledger reveal d4">
+            <div class="cap">本册收录</div>
+            <div class="line"><span>动作走查</span><span>谁点 / 写哪张表</span></div>
+            <div class="line"><span>术语表</span><span>一词一义</span></div>
+            <div class="line"><span>状态机</span><span>四条各记各的</span></div>
+            <div class="line"><span>现行对照</span><span>目标事实</span></div>
+          </div>
+        </div>
+        <div class="slide-foot reveal d5">
+          <span>INTERNAL BRIEFING</span>
+          <span>01 / 08</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- === 02 AGENDA === -->
+    <section class="slide" data-label="目录">
+      <div class="slide-bg"></div>
+      <div class="slide-pad">
+        <div class="slide-head reveal d1">
+          <div>
+            <div class="eyebrow">AGENDA</div>
+            <h2>本册怎么读</h2>
+          </div>
+          <div class="folio">02 / 08</div>
+        </div>
+        <div class="agenda-grid">
+          <article class="agenda-card reveal d2">
+            <div class="num">01</div>
+            <h3>定调</h3>
+            <p>一笔订单一条服务实例。成熟度中间档留空，身份按全部实例重算。</p>
+            <div class="tag">核心命题</div>
+          </article>
+          <article class="agenda-card reveal d3">
+            <div class="num">02</div>
+            <h3>工作台</h3>
+            <p>红娘先看待判断与例外；审核人另看审核。林晓只有红娘，苏衡两项都有。</p>
+            <div class="tag">权限与首页</div>
+          </article>
+          <article class="agenda-card reveal d4">
+            <div class="num">03</div>
+            <h3>走查</h3>
+            <p>关键动作：谁点、写哪张表、会员页立刻看到什么。</p>
+            <div class="tag">动作对照</div>
+          </article>
+          <article class="agenda-card reveal d4">
+            <div class="num">04</div>
+            <h3>术语</h3>
+            <p>冻结用词：服务实例、归属、待判断、过期 VIP、到期函……一词一义。</p>
+            <div class="tag">glossary.md</div>
+          </article>
+          <article class="agenda-card reveal d5">
+            <div class="num">05</div>
+            <h3>状态机</h3>
+            <p>服务关系、牵线单、约会单、服务期四条互不抄写；身份不是第五条。</p>
+            <div class="tag">state-machines.md</div>
+          </article>
+          <article class="agenda-card reveal d6">
+            <div class="num">06</div>
+            <h3>对照</h3>
+            <p>现行事实 vs 牵线宝目标：开启、关单、过期、推荐等关键改口。</p>
+            <div class="tag">current-vs-target</div>
+          </article>
+        </div>
+        <div class="slide-foot reveal d6">
+          <span>阅读向 · 可异步传阅</span>
+          <span>ARROW / SPACE</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- === 03 STATEMENT === -->
+    <section class="slide" data-label="定调">
+      <div class="slide-bg"></div>
+      <div class="slide-pad">
+        <div class="slide-head reveal d1">
+          <div>
+            <div class="eyebrow">THESIS</div>
+            <h2>这一期只做账本</h2>
+          </div>
+          <div class="folio">03 / 08</div>
+        </div>
+        <div class="statement-body">
+          <blockquote class="reveal d2">
+            一笔订单只留<em>一条服务实例</em>。<br />
+            起止、总结束、四类总量与已用，都写在这一行上。
+          </blockquote>
+          <div class="pillars">
+            <div class="pillar reveal d3">
+              <h4>不另建表</h4>
+              <p>没有单独的服务期表、次数表、暂停历史、过期池、诚意库、课次。</p>
+            </div>
+            <div class="pillar reveal d4">
+              <h4>成熟度三处</h4>
+              <p>系统只写新升级、暂停、已关单。中间档留空，不和约会对照。</p>
+            </div>
+            <div class="pillar reveal d5">
+              <h4>身份是查询</h4>
+              <p>`member_type` 只是同事务回写的缓存。人不能在会员页改它。</p>
+            </div>
+          </div>
+        </div>
+        <div class="slide-foot reveal d6">
+          <span>履约域边界 · 一期范围</span>
+          <span>03 / 08</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- === 04 WORKBENCH === -->
+    <section class="slide" data-label="工作台">
+      <div class="slide-bg"></div>
+      <div class="slide-pad">
+        <div class="slide-head reveal d1">
+          <div>
+            <div class="eyebrow">WORKBENCH</div>
+            <h2>红娘每天先看三块</h2>
+          </div>
+          <div class="folio">04 / 08</div>
+        </div>
+        <div class="triad">
+          <article class="triad-card hot reveal d2">
+            <div class="who">红娘</div>
+            <h3>待判断</h3>
+            <ul>
+              <li>待确认的推荐草稿</li>
+              <li>到点未填的见面结果</li>
+              <li>到期 / 恋爱起草且未审完的关单</li>
+              <li>只建议关单、还没有申请的那一条</li>
+            </ul>
+          </article>
+          <article class="triad-card reveal d3">
+            <div class="who">红娘</div>
+            <h3>例外</h3>
+            <ul>
+              <li>还不能开启的缺口</li>
+              <li>服务人落到店长或总监</li>
+              <li>要暂停 / 赠送 / 提前关单</li>
+              <li>暂停中可提前恢复</li>
+            </ul>
+          </article>
+          <article class="triad-card reveal d4">
+            <div class="who">审核人</div>
+            <h3>审核</h3>
+            <ul>
+              <li>赠送待审（一次）</li>
+              <li>暂停待审（一次）</li>
+              <li>关单一审 → 待二审</li>
+              <li>关单二审才改实例为完成</li>
+            </ul>
+          </article>
+        </div>
+        <div class="note-bar reveal d5">
+          <div class="box"><strong>账号示范：</strong>林晓只有红娘；苏衡是红娘加审核人。没有单独的审核人账号。</div>
+          <div class="box"><strong>服务库 / 过期 VIP：</strong>都是当天查询名单，不是池表写入。</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- === 05 WALKTHROUGH === -->
+    <section class="slide" data-label="走查">
+      <div class="slide-bg"></div>
+      <div class="slide-pad">
+        <div class="slide-head reveal d1">
+          <div>
+            <div class="eyebrow">WALKTHROUGH</div>
+            <h2>关键动作：谁点 · 写哪</h2>
+          </div>
+          <div class="folio">05 / 08</div>
+        </div>
+        <table class="wt-table reveal d2">
+          <thead>
+            <tr>
+              <th>动作</th>
+              <th>谁点</th>
+              <th>写入</th>
+              <th>会员页立刻看到</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>系统 / 确认开启</td>
+              <td>系统或红娘</td>
+              <td>实例→启用中；起止与四类总量；成熟度「新升级」；`ServiceStarted`</td>
+              <td>这一单启用中；身份 VIP；无旧式开启按钮</td>
+            </tr>
+            <tr>
+              <td>确认推荐</td>
+              <td>红娘</td>
+              <td>插入 `recommendations`；草稿结案；不改成熟度</td>
+              <td>推荐列表出现嘉宾；成熟度不变</td>
+            </tr>
+            <tr>
+              <td>填写见面结果</td>
+              <td>红娘</td>
+              <td>只更新该行 `meetings`</td>
+              <td>结果不再是「还没填」；恋爱不直接关单</td>
+            </tr>
+            <tr>
+              <td>关单二审通过</td>
+              <td>审核人</td>
+              <td>申请通过；实例→完成；停归属；成熟度「已关单」</td>
+              <td>完成；无其他在服则过期 VIP；离开服务库</td>
+            </tr>
+            <tr>
+              <td>暂停通过 / 恢复</td>
+              <td>审核 / 红娘或系统</td>
+              <td>通过只改暂停；恢复按剩余月重算结束日</td>
+              <td>暂停时日期不动；恢复后结束日重算</td>
+            </tr>
+            <tr>
+              <td>红娘领取</td>
+              <td>红娘</td>
+              <td>写有效服务归属，来源「红娘领取」</td>
+              <td>进服务库；实例仍是完成</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="wt-note reveal d3">完整逐行动作见 `docs/crm-1-walkthrough.md`。系统自动轮还会做默认服务人、开启、到点恢复、到期函、起草关单或关单建议——不审核、不确认推荐、不填见面结果。</p>
+      </div>
+    </section>
+
+    <!-- === 06 GLOSSARY === -->
+    <section class="slide" data-label="术语">
+      <div class="slide-bg"></div>
+      <div class="slide-pad">
+        <div class="slide-head reveal d1">
+          <div>
+            <div class="eyebrow">GLOSSARY</div>
+            <h2>冻结用词 · 一词一义</h2>
+          </div>
+          <div class="folio">06 / 08</div>
+        </div>
+        <div class="gloss-grid">
+          <div class="gloss-item reveal d2"><h4>服务实例</h4><p>一笔订单在履约库里的那一行：状态、计划开始、起止、总结束、四类次数。</p></div>
+          <div class="gloss-item reveal d2"><h4>服务归属</h4><p>当前这一位服务人。角色只能是服务；要么有效，要么已停用。</p></div>
+          <div class="gloss-item reveal d3"><h4>待启用 / 启用中</h4><p>未开或已在服。任一启用中 → 身份 VIP。</p></div>
+          <div class="gloss-item reveal d3"><h4>暂停 / 失效 / 完成</h4><p>暂停通过后；退费后失效（≠完成）；两级关单通过后完成。</p></div>
+          <div class="gloss-item reveal d4"><h4>待判断 / 例外 / 审核</h4><p>工作台三块。审核只给有审核权限的账号。</p></div>
+          <div class="gloss-item reveal d4"><h4>推荐草稿</h4><p>任务表待确认行，还不是推荐事实。确认后才写推荐。</p></div>
+          <div class="gloss-item reveal d5"><h4>过期 VIP</h4><p>查询结果，不是池表。完成实例 + 齐全关单 + 无有效服务归属。</p></div>
+          <div class="gloss-item reveal d5"><h4>到期函</h4><p>`close_vip_contract` 一行。不改实例，也不代替关单。</p></div>
+        </div>
+        <div class="gloss-banner reveal d6">不把别的叫法收成同义词。完整定义只在 `docs/glossary.md`。</div>
+      </div>
+    </section>
+
+    <!-- === 07 STATE MACHINES === -->
+    <section class="slide" data-label="状态机">
+      <div class="slide-bg"></div>
+      <div class="slide-pad">
+        <div class="slide-head reveal d1">
+          <div>
+            <div class="eyebrow">STATE MACHINES</div>
+            <h2>四条各记各的</h2>
+          </div>
+          <div class="folio">07 / 08</div>
+        </div>
+        <div class="sm-grid">
+          <article class="sm-card reveal d2">
+            <h3>服务关系</h3>
+            <div class="flow">无有效归属 → 有效归属 → 无有效归属</div>
+            <p>指定 / 默认（matchmanager→店长→总监）/ 红娘领取进有效。关单二审通过或退费完成（归属即本单）退出。</p>
+          </article>
+          <article class="sm-card reveal d3">
+            <h3>牵线单</h3>
+            <div class="flow">无牵线 → 待确认 → 已确认</div>
+            <p>草稿在任务表，事实在推荐表。确认不改成熟度、不改约会。同会员同嘉宾不能第二条。</p>
+          </article>
+          <article class="sm-card reveal d4">
+            <h3>约会单</h3>
+            <div class="flow">无约会 → 结果空着 → 已写结果</div>
+            <p>结果只写在这一行。恋爱默认只产生关单建议，不把实例改成完成。</p>
+          </article>
+          <article class="sm-card reveal d5">
+            <h3>服务期</h3>
+            <div class="flow">未写起止 → 已写起止 → 延长 / 重算</div>
+            <p>开启写起止与总量。暂停不改日期；恢复按剩余月重算。一期不扣已用。</p>
+          </article>
+        </div>
+        <div class="sm-ban reveal d6">
+          <div class="box"><strong>身份不是第五条状态机。</strong>按全部服务实例固定顺序计算，缓存列禁止手改。</div>
+          <div class="box"><strong>不许发生：</strong>销售/邀约写成服务归属；恋爱直接完成实例；暂停通过改结束日；草稿阶段插入推荐事实。</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- === 08 COMPARE + CLOSE === -->
+    <section class="slide" data-label="对照与收束">
+      <div class="slide-bg"></div>
+      <div class="slide-pad">
+        <div class="slide-head reveal d1">
+          <div>
+            <div class="eyebrow">COMPARE · NEXT</div>
+            <h2>现行 → 目标 · 已落地</h2>
+          </div>
+          <div class="folio">08 / 08</div>
+        </div>
+        <div class="close-body">
+          <div>
+            <div class="cmp-grid" style="margin-bottom: 0;">
+              <div class="cmp-col reveal d2">
+                <h3>现行习惯</h3>
+                <ul>
+                  <li><strong>开启：</strong>指定红娘后人手点开启，写多表与小记</li>
+                  <li><strong>关单：</strong>通过后写过期池、诚意库、节点小记</li>
+                  <li><strong>推荐：</strong>直接写 mark，常改成熟度</li>
+                  <li><strong>身份：</strong>人手可改的会员类型字段</li>
+                </ul>
+              </div>
+              <div class="cmp-col goal reveal d3">
+                <h3>牵线宝目标</h3>
+                <ul>
+                  <li><strong>开启：</strong>四项满足系统开；无旧按钮</li>
+                  <li><strong>关单：</strong>两级审；不写池表与诚意库</li>
+                  <li><strong>推荐：</strong>先草稿，确认后才写事实</li>
+                  <li><strong>身份：</strong>只按实例查询，禁手改</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="close-list reveal d4">
+            <div class="cap">本轮已写出</div>
+            <div class="row"><span>走查全文</span><span>crm-1-walkthrough</span></div>
+            <div class="row"><span>术语冻结</span><span>glossary</span></div>
+            <div class="row"><span>四条状态机</span><span>state-machines</span></div>
+            <div class="row"><span>现行对照</span><span>current-vs-target</span></div>
+            <div class="row"><span>工作台可演示</span><span>待判断 / 例外 / 审核</span></div>
+          </div>
+        </div>
+        <div class="slide-foot reveal d5">
+          <span>牵线宝 · 履约账本</span>
+          <span>完</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<nav class="deck-controls" aria-label="幻灯片控制">
+  <button type="button" id="prevBtn" aria-label="上一页">←</button>
+  <span id="pageIndicator">01 / 08</span>
+  <button type="button" id="nextBtn" aria-label="下一页">→</button>
+</nav>
+
+<script>
+/* ===========================================
+   SLIDE PRESENTATION CONTROLLER
+   =========================================== */
+class SlidePresentation {
+  constructor() {
+    this.slides = Array.from(document.querySelectorAll('.slide'));
+    this.currentSlide = 0;
+    this.stage = document.getElementById('deckStage');
+    this.pageIndicator = document.getElementById('pageIndicator');
+    this.setupStageScale();
+    this.setupKeyboardNav();
+    this.setupTouchNav();
+    this.setupWheelNav();
+    this.setupButtons();
+    this.showSlide(0);
+  }
+
+  setupStageScale() {
+    const scale = () => {
+      const factor = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+      const x = (window.innerWidth - 1920 * factor) / 2;
+      const y = (window.innerHeight - 1080 * factor) / 2;
+      this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+    };
+    scale();
+    window.addEventListener('resize', scale);
+  }
+
+  setupKeyboardNav() {
+    document.addEventListener('keydown', (e) => {
+      if (e.target && e.target.getAttribute('contenteditable') === 'true') return;
+      if (['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(e.key)) {
+        e.preventDefault();
+        this.next();
+      } else if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) {
+        e.preventDefault();
+        this.prev();
+      } else if (e.key === 'Home') {
+        this.showSlide(0);
+      } else if (e.key === 'End') {
+        this.showSlide(this.slides.length - 1);
+      }
+    });
+  }
+
+  setupTouchNav() {
+    let startX = null;
+    document.addEventListener('touchstart', (e) => {
+      startX = e.changedTouches[0].screenX;
+    }, { passive: true });
+    document.addEventListener('touchend', (e) => {
+      if (startX === null) return;
+      const dx = e.changedTouches[0].screenX - startX;
+      if (Math.abs(dx) > 50) {
+        if (dx < 0) this.next();
+        else this.prev();
+      }
+      startX = null;
+    }, { passive: true });
+  }
+
+  setupWheelNav() {
+    let locked = false;
+    window.addEventListener('wheel', (e) => {
+      if (locked) return;
+      if (Math.abs(e.deltaY) < 20) return;
+      locked = true;
+      if (e.deltaY > 0) this.next();
+      else this.prev();
+      setTimeout(() => { locked = false; }, 500);
+    }, { passive: true });
+  }
+
+  setupButtons() {
+    document.getElementById('prevBtn').addEventListener('click', () => this.prev());
+    document.getElementById('nextBtn').addEventListener('click', () => this.next());
+  }
+
+  showSlide(index) {
+    this.currentSlide = Math.max(0, Math.min(index, this.slides.length - 1));
+    this.slides.forEach((slide, i) => {
+      const on = i === this.currentSlide;
+      slide.classList.toggle('active', on);
+      slide.classList.toggle('visible', on);
+    });
+    const n = String(this.currentSlide + 1).padStart(2, '0');
+    const t = String(this.slides.length).padStart(2, '0');
+    this.pageIndicator.textContent = `${n} / ${t}`;
+  }
+
+  next() { this.showSlide(this.currentSlide + 1); }
+  prev() { this.showSlide(this.currentSlide - 1); }
+}
+
+const deck = new SlidePresentation();
+
+/* ===========================================
+   INLINE EDITING (E key / top-left hotzone)
+   =========================================== */
+const editor = {
+  isActive: false,
+  storageKey: 'qianxianbao-progress-deck-v1',
+  toggleEditMode() {
+    this.isActive = !this.isActive;
+    document.body.classList.toggle('editing', this.isActive);
+    document.getElementById('editToggle').classList.toggle('active', this.isActive);
+    document.querySelectorAll('.slide h1, .slide h2, .slide h3, .slide h4, .slide p, .slide li, .slide td, .slide blockquote, .slide .blurb, .slide .line span, .slide .row span, .agenda-card p, .pillar p, .gloss-item p, .sm-card p, .sm-card .flow, .wt-note, .gloss-banner, .box, .note-bar .box, .close-list .row span, .brand, .mark, .date, .eyebrow, .cap, .who, .tag').forEach((el) => {
+      el.setAttribute('contenteditable', this.isActive ? 'true' : 'false');
+    });
+    if (!this.isActive) this.save();
+  },
+  save() {
+    localStorage.setItem(this.storageKey, document.getElementById('deckStage').innerHTML);
+  },
+  restore() {
+    const html = localStorage.getItem(this.storageKey);
+    if (html) {
+      document.getElementById('deckStage').innerHTML = html;
+      deck.slides = Array.from(document.querySelectorAll('.slide'));
+      deck.showSlide(deck.currentSlide);
+    }
+  }
+};
+
+editor.restore();
+
+const hotzone = document.querySelector('.edit-hotzone');
+const editToggle = document.getElementById('editToggle');
+let hideTimeout = null;
+
+editToggle.addEventListener('click', () => editor.toggleEditMode());
+hotzone.addEventListener('mouseenter', () => {
+  clearTimeout(hideTimeout);
+  editToggle.classList.add('show');
+});
+hotzone.addEventListener('mouseleave', () => {
+  hideTimeout = setTimeout(() => {
+    if (!editor.isActive) editToggle.classList.remove('show');
+  }, 400);
+});
+editToggle.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+editToggle.addEventListener('mouseleave', () => {
+  hideTimeout = setTimeout(() => {
+    if (!editor.isActive) editToggle.classList.remove('show');
+  }, 400);
+});
+hotzone.addEventListener('click', () => editor.toggleEditMode());
+
+document.addEventListener('keydown', (e) => {
+  if ((e.key === 'e' || e.key === 'E') && !e.target.getAttribute('contenteditable')) {
+    editor.toggleEditMode();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    editor.save();
+  }
+});
+</script>
+</body>
+</html>

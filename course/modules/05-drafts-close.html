@@ -1,0 +1,252 @@
+<section class="module" id="module-5" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">05</span>
+      <h1 class="module-title">草稿纸，和盖过章的信</h1>
+      <p class="module-subtitle">推荐先写草稿。关单要两个人点头。暂停按走完的服务月计，不按天数。 </p>
+    </header>
+
+    <div class="module-body">
+      <section class="screen animate-in">
+        <h2 class="screen-heading">排练可以涂改，演出说明书不能</h2>
+        <p>红娘登录时，系统给<span class="term" data-definition="当前服务人名下、状态为待启用、启用中或暂停的会员名单。它是查出来的，不是一张固定的表。跟 AI 说：服务库按服务归属过滤。">服务库</span>里每位会员准备一条待确认推荐。客人是库里编号更小、不是本人、也还没有推荐事实的那位。不打分。理由先写「同在服务库，尚未推荐」。</p>
+        <p>确认之前，它只是 <span class="term" data-definition="tasks 表里的一条待办，kind 为推荐草稿，状态为待确认。它不是推荐事实。跟 AI 说：准备草稿只写任务。">任务</span>。点确认，才写入 <span class="term" data-definition="recommendations 表里的一行：会员、嘉宾、进度、理由、亮点、需要隐瞒的点。确认草稿时才插入，并把草稿结案。">推荐事实</span>，草稿改成已确认。成熟度不变，也不写系统小记。</p>
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="flow-step-num">1</div>
+            <p>服务库里挑一位客人</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">2</div>
+            <p>写下待确认草稿</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">3</div>
+            <p>红娘确认</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">4</div>
+            <p>才出现推荐事实</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">挑客人的规则短得可以背下来</h2>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">代码</span>
+            <pre><code><span class="code-line"><span class="code-keyword">export function</span> <span class="code-function">chooseLibraryGuest</span>(memberId: number, libraryIds: number[], alreadyRecommended: Iterable&lt;number&gt;) {</span>
+<span class="code-line">  <span class="code-keyword">const</span> taken = <span class="code-keyword">new</span> Set(alreadyRecommended);</span>
+<span class="code-line">  <span class="code-keyword">for</span> (<span class="code-keyword">const</span> guestId <span class="code-keyword">of</span> libraryIds) {</span>
+<span class="code-line">    <span class="code-keyword">if</span> (guestId !== memberId &amp;&amp; !taken.has(guestId)) <span class="code-keyword">return</span> guestId;</span>
+<span class="code-line">  }</span>
+<span class="code-line">  <span class="code-keyword">return</span> <span class="code-keyword">null</span>;</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">白话</span>
+            <div class="translation-lines">
+              <p class="tl">从服务库编号列表里为这位会员挑客人。文件是 <code>src/drafts.ts</code>。</p>
+              <p class="tl">先记下已经有推荐事实的那些嘉宾。</p>
+              <p class="tl">按列表顺序往下看。调用前列表已按编号从小到大排过。</p>
+              <p class="tl">不是本人，也还没推荐过，就用这一位。</p>
+              <p class="tl">这一圈结束。</p>
+              <p class="tl">库里没有合适的人，就不准备草稿。</p>
+              <p class="tl">函数结束。</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-warning">
+          <div class="callout-icon">⚠</div>
+          <div class="callout-content">
+            <strong class="callout-title">「AI 补写」现在不是模型</strong>
+            <p><code>web/src/draftCopy.ts</code> 的注释写着：仍是写死的四组话术，只把两个姓名套进去。空着的项才填，已经写过的不覆盖。占位理由可以换成这四句之一。跟 AI 说「接上模型」之前，先读根目录 <code>TODO.md</code>，不要假装已经接了。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">关单一审只把申请往后推一格</h2>
+        <p>像剧院检票：第一道口只看你有没有票，不把演出改成散场。一审通过，申请从「待审」变成「待二审」。驳回就结束。实例还是原样。</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">代码</span>
+            <pre><code><span class="code-line">        <span class="code-keyword">if</span> (app.type !== <span class="code-string">"关单"</span> || app.status !== <span class="code-string">"待审"</span>) {</span>
+<span class="code-line">          <span class="code-keyword">throw new</span> <span class="code-function">FulfillmentError</span>(<span class="code-string">"关单一审只处理待审的关单"</span>);</span>
+<span class="code-line">        }</span>
+<span class="code-line">        <span class="code-keyword">await</span> tx.update(applications)</span>
+<span class="code-line">          .set({</span>
+<span class="code-line">            status: input.decision === <span class="code-string">"通过"</span> ? <span class="code-string">"待二审"</span> : <span class="code-string">"驳回"</span>,</span>
+<span class="code-line">            decidedAt: input.decision === <span class="code-string">"驳回"</span> ? input.today : <span class="code-keyword">null</span>,</span>
+<span class="code-line">          })</span>
+<span class="code-line">          .where(<span class="code-function">eq</span>(applications.id, app.id))</span>
+<span class="code-line">          ;</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">白话</span>
+            <div class="translation-lines">
+              <p class="tl">不是关单，或不是待审，一审拒绝动手。函数是 <code>reviewCloseFirst</code>。</p>
+              <p class="tl">错误原文就这一句，页面上会看到它。</p>
+              <p class="tl">检查结束。</p>
+              <p class="tl">只改申请这一行，不改服务实例。</p>
+              <p class="tl">开始写新字段。</p>
+              <p class="tl">通过就排队等二审。驳回就结束。</p>
+              <p class="tl">只有驳回才记下决定日。通过先不记，等二审。</p>
+              <p class="tl">字段写完。</p>
+              <p class="tl">按这条申请的编号落库。</p>
+              <p class="tl">这条更新到此结束。服务实例一行都没改。</p>
+            </div>
+          </div>
+        </div>
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-3)">
+            <div class="pattern-icon" style="background: var(--color-actor-3)">二</div>
+            <h4 class="pattern-title">二审才散场</h4>
+            <p class="pattern-desc">两级都通过，实例才变成完成。要有是否同意、原因、关单人、关单前服务人。然后停用当前服务人，成熟度写成已关单。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">停</div>
+            <h4 class="pattern-title">暂停和赠送只审一次</h4>
+            <p class="pattern-desc">暂停通过只把实例改成暂停，结束日先不动。赠送通过只延长结束日或增加某一类总量，已用不动。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-5)">
+            <div class="pattern-icon" style="background: var(--color-actor-5)">恋</div>
+            <h4 class="pattern-title">恋爱不等于关单</h4>
+            <p class="pattern-desc">默认只写「关单建议」，不建申请。打开自动起草后才会起草，仍然不自动审核。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">暂停像月票，不满一个月不算用过</h2>
+        <p>服务月按日历月计。某一服务月只有在暂停日不早于该月最后一天时，才算走完。暂停了多久再恢复，都不把暂停天数加回原来的结束日。新的结束日 = 恢复日 + 暂停时记下的剩余月数。</p>
+        <div class="badge-list">
+          <div class="badge-item">
+            <code class="badge-code">6 个月</code>
+            <span class="badge-desc">1 月 1 日开始。2 月最后一天暂停：走完 2 个月，剩下 4 个月。</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">恢复日 + 4</code>
+            <span class="badge-desc">哪怕停了很久，剩下的仍是 4 个日历月，从恢复那天往后加。</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">已用不动</code>
+            <span class="badge-desc">赠送和暂停都不改已用次数。这一期本来也不扣已用。</span>
+          </div>
+        </div>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">代码</span>
+            <pre><code><span class="code-line"><span class="code-keyword">export function</span> <span class="code-function">remainingServiceMonths</span>(start: string, pauseDate: string, durationMonths: number): number {</span>
+<span class="code-line">  <span class="code-keyword">if</span> (durationMonths &lt; 1) {</span>
+<span class="code-line">    <span class="code-keyword">throw new</span> Error(<span class="code-string">"服务时长至少要有一个月"</span>);</span>
+<span class="code-line">  }</span>
+<span class="code-line">  <span class="code-keyword">return</span> durationMonths - <span class="code-function">elapsedServiceMonths</span>(start, pauseDate, durationMonths);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">白话</span>
+            <div class="translation-lines">
+              <p class="tl">算暂停时还剩几个服务月。在 <code>src/calendar.ts</code>。</p>
+              <p class="tl">时长小于 1 个月，这套月票规则不适用。</p>
+              <p class="tl">直接报错，不按天去折算。</p>
+              <p class="tl">检查结束。</p>
+              <p class="tl">总月数减去已经走完的月数。走完与否看暂停日有没有到那个月的最后一天。</p>
+              <p class="tl">把这个剩余月数记在暂停申请上，恢复时再用。</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">跟 AI 说「按日历月，不满月不折算」</strong>
+            <p>如果它写成「暂停天数加回结束日」，那是另一套产品。这个账本不这么算。处理中名单只包含还没审完的申请：关单的待审和待二审，以及赠送、暂停的待审。通过之后就离开处理中。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">点下去之前，先问改的是哪一张纸</h2>
+        <div class="quiz-container" id="quiz-module5">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="确认之前只有任务。推荐事实表要等红娘确认才插入。所以会员页上看不到正式推荐是对的。"
+               data-explanation-wrong="草稿和事实是两张纸。待判断里有草稿，不等于推荐已经发生。">
+            <div class="scenario-block">
+              <div class="scenario-context">
+                <span class="scenario-label">情景</span>
+                <p>待判断里有一条「待确认推荐」，会员详情里却没有推荐记录。红娘觉得数据丢了。</p>
+              </div>
+            </div>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>让 AI 在准备草稿时就写入推荐事实，两边就会一致</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>这是设计。确认之前只存在草稿，确认后才有推荐事实</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>身份缓存没刷新。重算 member_type 推荐就会出现</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="一审通过只把申请改成待二审。实例变成完成要等二审，而且还要有是否同意、原因、关单人和关单前服务人。"
+               data-explanation-wrong="两级审核不是走个形式。一审不动实例。">
+            <h3 class="quiz-question">苏衡把一笔关单点了「通过」，状态从待审变成待二审。服务实例现在是？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>还是原来的状态。完成要等二审通过</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>已经完成，人进入过期 VIP</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>变成暂停，等二审再恢复</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="剩余月数在暂停通过时就算好并记在申请上。恢复日只决定从哪天开始把这些月加回去，不重新按暂停天数计算。"
+               data-explanation-wrong="暂停天数不加回结束日。月票看的是走完了几个服务月。">
+            <h3 class="quiz-question">六个月服务在第二个月最后一天暂停，三个月后才恢复。新的结束日怎么来？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>原结束日加上这三个月的天数</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>从原开始日重新算六个月</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>恢复日再加上当时记下的剩余 4 个服务月</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module5')">对一下答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module5')">再试一次</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
